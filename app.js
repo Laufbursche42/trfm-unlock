@@ -188,18 +188,40 @@ const T = { speed: 0, soc: 0, gear: 0, speedRaw: 0, volt: 0, frameNum: '', fin: 
 
 function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
 
+// Frame reassembly: a BLE notification is not guaranteed to carry exactly one 20-byte frame (it can
+// be fragmented or batched), so we buffer the bytes and pull out every 20-byte frame that starts
+// with 0x55 and has a valid CRC. The old code assumed 20-byte-aligned notifications and, on a unit
+// that fragments, parsed nothing at all - no telemetry, so the FIN only appeared on disconnect.
+let rxBuf = new Uint8Array(0);
+let diagNotify = 0;
+let diagParsed = false;
+
 function onNotify(value) {                       // value: DataView
   const len = value.byteLength;
-  for (let off = 0; off + 20 <= len; off += 20) {
-    const t = new Array(20);
-    for (let i = 0; i < 20; i++) t[i] = value.getUint8(off + i);
-    if (crc8(t, 19) !== (t[19] & 0xFF)) continue;
-    if (t[0] !== 0x55) continue;
-    dispatch(t);
+  if (diagNotify < 3) {                          // log the first raw notifications for diagnosis
+    diagNotify++;
+    let h = '';
+    for (let i = 0; i < Math.min(len, 12); i++) h += value.getUint8(i).toString(16).padStart(2, '0') + ' ';
+    log('rx ' + len + 'B: ' + h.trim());
   }
+  const merged = new Uint8Array(rxBuf.length + len);
+  merged.set(rxBuf, 0);
+  for (let i = 0; i < len; i++) merged[rxBuf.length + i] = value.getUint8(i);
+  let pos = 0;
+  while (pos + 20 <= merged.length) {
+    if (merged[pos] !== 0x55) { pos++; continue; }            // resync to the 0x55 frame marker
+    const t = new Array(20);
+    for (let i = 0; i < 20; i++) t[i] = merged[pos + i];
+    if (crc8(t, 19) !== (t[19] & 0xFF)) { pos++; continue; }  // not a valid frame - skip one byte
+    dispatch(t);
+    pos += 20;
+  }
+  rxBuf = merged.slice(pos);                     // keep the unconsumed tail for the next notification
+  if (rxBuf.length > 200) rxBuf = rxBuf.slice(rxBuf.length - 40);
 }
 
 function dispatch(t) {
+  if (!diagParsed) { diagParsed = true; log('telemetry ok - first frame 0x' + (t[1] & 0xFF).toString(16)); }
   switch (t[1]) {
     case 0x71:
       updateFrom71(t);
@@ -264,6 +286,7 @@ async function pickAndConnect() {
 async function connectGatt() {
   setStatus('connecting');
   notifyReady = false; connected = false;
+  rxBuf = new Uint8Array(0); diagNotify = 0; diagParsed = false;   // fresh frame buffer + diagnostics
   server = await device.gatt.connect();
   const svc = await pickService(server);
   if (!svc) { setStatus('no-service'); log('no matching GATT service'); return; }
@@ -277,6 +300,7 @@ async function connectGatt() {
   reconnectDelay = RECONNECT_BASE_MS;
   setStatus('connected');
   refreshFinField();
+  renderLive();                  // show the FIN + tiles immediately from the BLE name, not only on a frame
   try { if (device && device.id) localStorage.setItem(LS_DEVICE, device.id); } catch (e) {}
   log('connected. notify=' + notifyChar.uuid.slice(0, 8) + ' write=' + writeChar.uuid.slice(0, 8));
   startKeepAlive();
@@ -451,6 +475,7 @@ function unlock() {
   // Arm the wheel + cruise restore for the fresh 55 71 after the rename-reconnect.
   pendingRestore = true; restoreArmed = false;
   deviceName = open; finField.value = open; updateFin();
+  refreshToggle();
 }
 
 function lock() {
@@ -469,6 +494,7 @@ function lock() {
   enqueue(setDeviceName(locked));
   pendingRestore = false; restoreArmed = false;
   deviceName = locked; finField.value = locked; updateFin();
+  refreshToggle();
 }
 
 // Called on every 55 71. When a restore is armed (unlock happened, link dropped and came back),
@@ -557,16 +583,29 @@ function log(m) {
   const el = $('log'); if (!el) return;
   el.textContent = ('[' + new Date().toLocaleTimeString() + '] ' + m + '\n') + el.textContent;
 }
+// The single lock/unlock control reflects the current state: "Unlock" when the scooter is locked
+// (FIN starts with TDE), "Lock" when it is open. Driven by the live FIN, refreshed on every frame.
+function refreshToggle() {
+  const btn = $('btn-toggle');
+  if (!btn) return;
+  const fin = ((finField && finField.value) || deviceName || '').trim();
+  const locked = fin.startsWith('TDE');
+  btn.textContent = locked ? 'Unlock' : 'Lock';
+  btn.dataset.action = locked ? 'unlock' : 'lock';
+  btn.disabled = !connected;
+}
 function renderLive() {
   $('t-wheel').textContent = S.received71 ? S.wheel.toFixed(1) : '-';
   $('t-cruise').textContent = S.received71 ? ['Off', 'Auto', 'Manual'][S.cruise] || S.cruise : '-';
   $('t-fin').textContent = T.fin || deviceName || '-';
   refreshSettingsInputs();
+  refreshToggle();
 }
 function resetTiles() {                                 // no telemetry -> show "-"
   $('t-wheel').textContent = '-';
   $('t-cruise').textContent = '-';
   $('t-fin').textContent = deviceName || '-';
+  refreshToggle();
 }
 // The FIN field is editable only once a FIN was actually read from the scooter.
 function refreshFinField() {
@@ -592,8 +631,9 @@ window.addEventListener('DOMContentLoaded', () => {
   finField = $('fin');
   $('btn-connect').addEventListener('click', pickAndConnect);
   $('btn-disconnect').addEventListener('click', disconnectBle);
-  $('btn-unlock').addEventListener('click', unlock);
-  $('btn-lock').addEventListener('click', lock);
+  $('btn-toggle').addEventListener('click', () => {
+    if ($('btn-toggle').dataset.action === 'unlock') unlock(); else lock();
+  });
   $('btn-set-wheel').addEventListener('click', () => {
     const v = parseFloat($('wheel-in').value);
     if (!isNaN(v) && v > 0) setWheel(v);

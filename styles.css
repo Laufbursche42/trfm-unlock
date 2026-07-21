@@ -22,6 +22,7 @@ h1 span { color: var(--accent); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btns button { width: 100%; }
+.span2 { grid-column: 1 / -1; }
 .full { flex: 1 1 100%; }
 button, .btn {
   appearance: none; border: 1px solid var(--line); background: #171b2a; color: var(--text);
