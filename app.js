@@ -21,14 +21,17 @@ const NAME_PREFIXES = ['TDE', 'T1'];
 const ISSC_SERVICE = '49535343-fe7d-4ae5-8fa9-9fafd205e455';
 const ISSC_NOTIFY  = '49535343-1e4d-4bd9-ba61-23c647249616';
 const ISSC_WRITE   = '49535343-aca3-481c-91ec-d85e28a60318';
-// Web Bluetooth can only touch services declared up front (the one constraint that cannot be
-// removed). To reproduce the native "match any 0000FFxx or 495353xx service" discovery, declare the
-// WHOLE 0000FF00..0000FFFF family plus the ISSC transparent-UART service, then let pickService()
-// apply the SAME last-match logic as BleManager.pickService() over exactly that set.
-const FF_FAMILY = Array.from({ length: 256 }, (_, i) =>
-  '0000ff' + i.toString(16).padStart(2, '0') + '-0000-1000-8000-00805f9b34fb');
+// Web Bluetooth can only touch services declared up front (the one hard constraint). Cheap BLE-UART
+// modules use 16-bit UUIDs in the vendor/member ranges 0xFCxx-0xFFxx (HM-10 0xFFE0, member 0xFExx,
+// ISSC alternates, ...), so declare the WHOLE 0xFC00-0xFFFF range plus the known 128-bit UARTs (ISSC,
+// Nordic). That covers almost every module WITHOUT knowing its exact UUID - and makes the real service
+// appear in getPrimaryServices() and the log, so a new module is identified from a log line, not by hand.
+const VENDOR_16BIT = [];
+for (const base of ['fc', 'fd', 'fe', 'ff'])
+  for (let i = 0; i < 256; i++)
+    VENDOR_16BIT.push('0000' + base + i.toString(16).padStart(2, '0') + '-0000-1000-8000-00805f9b34fb');
 const NORDIC_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';   // Nordic UART - a common non-ISSC/FF BLE-UART module
-const OPTIONAL_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE, ...FF_FAMILY];
+const OPTIONAL_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE, ...VENDOR_16BIT];
 
 const CONNECT_CODE_INTERVAL_MS = 6500;
 const WRITE_GAP_MS = 200;         // match the native app's ~200 ms spacing (gentler on the BLE module)
@@ -333,12 +336,13 @@ async function connectGatt() {
 
 // The common ISSC/FF services to fetch directly when enumeration is unavailable (Bluefy).
 const COMMON_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE,
-  '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb',
-  '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe5-0000-1000-8000-00805f9b34fb',
-  '0000fff6-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb'];
+  '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb',
+  '0000fff0-0000-1000-8000-00805f9b34fb', '0000ff00-0000-1000-8000-00805f9b34fb',
+  '0000ffe5-0000-1000-8000-00805f9b34fb', '0000fff6-0000-1000-8000-00805f9b34fb',
+  '0000ffb0-0000-1000-8000-00805f9b34fb', '0000fee0-0000-1000-8000-00805f9b34fb'];
 
 async function pickService(srv) {
-  const isMatch = u => u.startsWith('495353') || u.startsWith('0000ff') || /^ff[0-9a-f]{2}$/.test(u);
+  const isMatch = u => u.startsWith('495353') || u.startsWith('6e400001') || /^0000f[c-f]/.test(u) || /^f[c-f][0-9a-f]{2}$/.test(u);
   async function direct(list) {
     for (const uuid of list) {
       try { const s = await srv.getPrimaryService(uuid); if (s) { log('service (direct): ' + uuid.slice(0, 8)); return s; } }
@@ -362,7 +366,7 @@ async function pickService(srv) {
     if (d) return d;
     if (attempt === 0) { log('no service yet - waiting for GATT discovery, retrying'); await sleep(1500); }
   }
-  return await direct(FF_FAMILY.filter(u => COMMON_SERVICES.indexOf(u) < 0));   // last resort: whole 0000ffxx family
+  return null;   // enumerate (broad 0xFCxx-0xFFxx declaration) plus the direct COMMON fetch cover the modules
 }
 
 async function pickCharacteristics(svc) {
