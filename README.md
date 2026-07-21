@@ -24,7 +24,7 @@ Open **https://laufbursche42.github.io/trfm-unlock/** in Bluefy (iOS) or Chrome 
 ### 2. Get the firmware and flash it (one time)
 On the page, tap **Download firmware** to get `AWIVCU_PATCHED_R5_4_19.hex`, then flash it **once with the official Teverun app**, the same way you flash any firmware update. You only do this once per scooter.
 
-**Before you flash - reset the display wheel to 10.** If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never touches the wheel value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your real wheel size in this web app instead: it applies only while unlocked and is forced back to 10 when you lock, so the display always reads 10.
+**Before you flash - reset the display wheel to 10.** If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never touches the wheel value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your real wheel size in this web app or the [Laufbursche Edition Android app](https://github.com/Laufbursche42/tr-lb-edition) instead (both write it over the VCU into every gear): it applies only while unlocked and is forced back to 10 when you lock, so the display always reads 10.
 
 **Do not rename the file.** The Teverun app validates the name when flashing (the third underscore group must be `R5`, whose last character is the major version). A made-up name is rejected.
 
