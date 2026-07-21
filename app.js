@@ -205,6 +205,7 @@ function dispatch(t) {
       updateFrom71(t);
       T.gear = t[3] & 0xFF;
       onSettingsFrame();
+      maybeRunDeepAction();      // a shortcut's ?do=lock waits for this first 55 71
       break;
     case 0x72: {
       T.speedRaw = u16(t, 15);
@@ -276,8 +277,10 @@ async function connectGatt() {
   reconnectDelay = RECONNECT_BASE_MS;
   setStatus('connected');
   refreshFinField();
+  try { if (device && device.id) localStorage.setItem(LS_DEVICE, device.id); } catch (e) {}
   log('connected. notify=' + notifyChar.uuid.slice(0, 8) + ' write=' + writeChar.uuid.slice(0, 8));
   startKeepAlive();
+  maybeRunDeepAction();          // a shortcut's ?do=unlock can fire as soon as the FIN is known
 }
 
 async function pickService(srv) {
@@ -384,7 +387,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // neither: on lock the wheel is forced to 10 (eKFV), so the app is the sole place the real value
 // survives. On unlock, after the rename-reconnect brings a fresh 55 71, we re-apply both.
 
-const LS_WHEEL = 'tru_wheel', LS_CRUISE = 'tru_cruise';
+const LS_WHEEL = 'tru_wheel', LS_CRUISE = 'tru_cruise', LS_DEVICE = 'tru_device';
 let pendingRestore = false;     // set on unlock; consumed by the first 55 71 after the reconnect
 let restoreArmed = false;       // set once the rename-drop actually happened
 
@@ -459,6 +462,64 @@ function requireReady() {
   if (!connected) { log('connect first'); return false; }
   if (!S.received71) { log('waiting for telemetry (55 71) before writing settings'); return false; }
   return true;
+}
+
+// ─────────────────────────── shortcut deep-link + auto-reconnect ───────────────────────────
+//
+// A home-screen shortcut (iOS Shortcuts / Android home-screen icon) opens the page with ?do=lock or
+// ?do=unlock. On load we reconnect to the last granted scooter via getDevices() - no chooser, works
+// in Bluefy (iOS) and Chrome - then run the action once connected. getDevices()/auto-connect need no
+// fresh picker, but the scooter must be on and in range; otherwise the user just taps Connect.
+
+let pendingDeepAction = null;     // 'lock' | 'unlock' parsed from the URL, run once after connect
+
+function parseDeepLink() {
+  try {
+    let a = (new URLSearchParams(location.search).get('do') || '').toLowerCase();
+    if (!a && location.hash) a = (new URLSearchParams(location.hash.replace(/^#/, '')).get('do') || '').toLowerCase();
+    if (a === 'lock' || a === 'unlock') { pendingDeepAction = a; log('shortcut: ' + a + ' requested'); }
+  } catch (e) {}
+}
+
+function maybeRunDeepAction() {
+  if (!pendingDeepAction || !connected) return;
+  if (pendingDeepAction === 'unlock') {
+    if (!deviceName) return;                 // need the FIN / BLE name first
+    pendingDeepAction = null;
+    log('shortcut: auto-unlock');
+    unlock();
+  } else if (pendingDeepAction === 'lock') {
+    if (!S.received71) return;               // lock needs a 55 71 first
+    pendingDeepAction = null;
+    log('shortcut: auto-lock');
+    lock();
+  }
+}
+
+// Reconnect to a previously paired scooter without showing the chooser (Web Bluetooth getDevices()).
+// A first-time visitor has nothing granted yet, so nothing happens and the user taps Connect.
+async function tryAutoReconnect() {
+  if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return;
+  try {
+    const devs = await navigator.bluetooth.getDevices();
+    if (!devs || !devs.length) return;
+    const savedId = localStorage.getItem(LS_DEVICE);
+    const dev = (savedId && devs.find(d => d.id === savedId))
+             || devs.find(d => (d.name || '') && NAME_PREFIXES.some(p => d.name.startsWith(p)))
+             || null;
+    if (!dev) return;
+    device = dev;
+    deviceName = device.name || '';
+    updateFin();
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+    if (finField) finField.value = deviceName;
+    userDisconnect = false;
+    log('auto-reconnect: ' + (deviceName || device.id));
+    await connectGatt();
+  } catch (e) {
+    setStatus('disconnected');
+    log('auto-reconnect skipped: ' + e);
+  }
 }
 
 // ─────────────────────────── UI ───────────────────────────

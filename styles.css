@@ -60,3 +60,8 @@ pre#log { margin: 0; background: #0d1018; border: 1px solid var(--line); border-
 .steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .steps li { font-size: 13.5px; color: var(--text); }
 .hint a, .warn a { color: var(--accent); }
+.danger { color: var(--bad); font-size: 12px; background: #FF505014; border: 1px solid #FF505040;
+  border-radius: 8px; padding: 9px 11px; margin: 0; }
+.danger b { color: #ff8080; }
+code { font-family: var(--mono); font-size: 12px; background: #0d1018; border: 1px solid var(--line);
+  border-radius: 5px; padding: 1px 5px; color: var(--value); word-break: break-all; }
