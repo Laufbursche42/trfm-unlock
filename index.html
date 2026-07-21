@@ -81,11 +81,18 @@
 
   <div class="card">
     <h2>Home-screen shortcut (iOS / Android)</h2>
-    <p class="hint">Add <code>?do=unlock</code> or <code>?do=lock</code> to the page URL. When it opens, a previously paired scooter reconnects without the picker and the action then runs by itself. Make one shortcut for each.</p>
-    <p class="hint"><b>Do one clean run without the shortcut first:</b> connect, then use <b>Unlock</b> / <b>Lock</b> and set your wheel diameter + cruise once. That is what lets the browser remember them - the shortcut's unlock only restores wheel + cruise that were stored on a prior manual run.</p>
-    <p class="hint"><b>iOS (Bluefy):</b> Shortcuts app -&gt; new shortcut -&gt; action <b>Open URLs</b> -&gt; enter the Bluefy scheme pointing at the page, e.g. <code>bluefy://open?url=https%3A%2F%2Flaufbursche42.github.io%2Ftrfm-unlock%2F%3Fdo%3Dunlock</code>. Add it to the home screen or give it a Siri phrase. A plain <code>https</code> link opens Safari, which has no Bluetooth - the <code>bluefy://</code> scheme is what opens Bluefy.</p>
-    <p class="hint"><b>Android (Chrome):</b> open <code>https://laufbursche42.github.io/trfm-unlock/?do=unlock</code> in Chrome -&gt; menu -&gt; <b>Add to Home screen</b>. Web Bluetooth is built in, so the icon opens straight into the page.</p>
-    <p class="hint">The scooter must be on and in range. The first-ever visit still needs the one-time <b>Connect</b> + picker (browser security); the shortcut cannot skip that.</p>
+    <p class="hint">Open the page already set to lock or unlock - a paired scooter reconnects without the picker and the action runs by itself. Make one shortcut for <b>Unlock</b> and one for <b>Lock</b>.</p>
+    <p class="warn"><b>Do one clean run without the shortcut first:</b> connect, then use <b>Unlock</b> / <b>Lock</b> and set wheel diameter + cruise once. Only a prior manual run lets the browser store them for the shortcut's unlock to restore.</p>
+
+    <p class="hint"><b>iOS (Bluefy)</b> - Shortcuts app -&gt; new shortcut -&gt; action <b>Open URLs</b> -&gt; paste a link below -&gt; add it to the home screen (or a Siri phrase). A plain <code>https</code> link opens Safari, which has no Bluetooth; the <code>bluefy://</code> scheme opens Bluefy.</p>
+    <div class="linkrow"><span class="lbl">Unlock</span><pre class="copy">bluefy://open?url=https%3A%2F%2Flaufbursche42.github.io%2Ftrfm-unlock%2F%3Fdo%3Dunlock</pre></div>
+    <div class="linkrow"><span class="lbl">Lock</span><pre class="copy">bluefy://open?url=https%3A%2F%2Flaufbursche42.github.io%2Ftrfm-unlock%2F%3Fdo%3Dlock</pre></div>
+
+    <p class="hint"><b>Android (Chrome)</b> - open a link below in Chrome -&gt; menu -&gt; <b>Add to Home screen</b>. Web Bluetooth is built in, so the icon opens straight into the page.</p>
+    <div class="linkrow"><span class="lbl">Unlock</span><pre class="copy">https://laufbursche42.github.io/trfm-unlock/?do=unlock</pre></div>
+    <div class="linkrow"><span class="lbl">Lock</span><pre class="copy">https://laufbursche42.github.io/trfm-unlock/?do=lock</pre></div>
+
+    <p class="hint">The scooter must be on and in range. The first-ever visit still needs the one-time <b>Connect</b> + picker (browser security).</p>
   </div>
 
   <div class="card">

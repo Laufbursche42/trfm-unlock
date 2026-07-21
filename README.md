@@ -43,10 +43,50 @@ The Bluetooth link runs entirely locally between the phone/PC and the scooter. W
 
 ---
 
+## Home-screen shortcut (iOS / Android)
+
+Open the page already set to lock or unlock: a paired scooter reconnects without the picker and the action runs by itself. Make one shortcut for **Unlock** and one for **Lock**.
+
+**Do one clean run without the shortcut first** - connect, then use Unlock / Lock and set wheel diameter + cruise once. Only a prior manual run lets the browser store them, which the shortcut's unlock then restores. The scooter must be on and in range; the first-ever visit still needs the one-time **Connect** + picker (browser security), which no shortcut can skip.
+
+### iOS (Bluefy)
+
+Open the **Shortcuts** app, create a new shortcut, add the action **Open URLs** and paste one of the links below, then add the shortcut to the home screen (or give it a Siri phrase). A plain `https` link would open Safari, which has no Bluetooth; the `bluefy://` scheme is what opens Bluefy.
+
+Unlock:
+
+```
+bluefy://open?url=https%3A%2F%2Flaufbursche42.github.io%2Ftrfm-unlock%2F%3Fdo%3Dunlock
+```
+
+Lock:
+
+```
+bluefy://open?url=https%3A%2F%2Flaufbursche42.github.io%2Ftrfm-unlock%2F%3Fdo%3Dlock
+```
+
+### Android (Chrome)
+
+Open one of the links below in Chrome, then use the menu and **Add to Home screen**. Web Bluetooth is built in, so the icon opens straight into the page.
+
+Unlock:
+
+```
+https://laufbursche42.github.io/trfm-unlock/?do=unlock
+```
+
+Lock:
+
+```
+https://laufbursche42.github.io/trfm-unlock/?do=lock
+```
+
+---
+
 ## Things to be aware of
 
 **iOS**
-- Always open it in **Bluefy**; do not add it to the home screen - that opens the Safari engine, which has no Bluetooth.
+- Always open the page in **Bluefy**. Do not bookmark the plain page to the home screen from Safari - that opens the Safari engine, which has no Bluetooth. A **Shortcut** that uses the `bluefy://` scheme (see above) is fine, because it opens Bluefy.
 
 **Android / desktop**
 - Just open it in Chrome (or another Chromium browser) - nothing special to watch out for.
