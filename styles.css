@@ -42,6 +42,7 @@ label { color: var(--label); font-size: 12px; text-transform: uppercase; letter-
   background: #171b2a; color: var(--muted); border: 1px solid var(--line); }
 .status[data-state="connected"] { color: var(--accent); border-color: var(--accent); }
 .status[data-state="disconnected"], .status[data-state="no-service"], .status[data-state="no-char"] { color: var(--bad); border-color: #3a2030; }
+.status[data-state="linking"], .status[data-state="no-data"] { color: var(--warn); border-color: #3a3020; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .tile { background: #0d1018; border: 1px solid var(--line); border-radius: 10px; padding: 12px; text-align: center; }
 .tile b { display: block; font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--value); }

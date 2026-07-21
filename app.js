@@ -10,7 +10,10 @@
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
-const NAME_PREFIXES = ['XY', 'T', 'BT04'];
+// Only real scooters: the BLE name is the FIN - "TDE..." when locked, "T1..." when unlocked. The old
+// broad 'T' matched any T-named device (TVs, phones), so the chooser and auto-reconnect could target
+// non-scooters. These strict prefixes keep the picker (and getDevices) to actual scooters only.
+const NAME_PREFIXES = ['TDE', 'T1'];
 
 // Candidate GATT services the Teverun BLE module exposes. The ISSC (Microchip) Transparent-UART
 // service is the usual one; the 0000FFxx family is the fallback. Web Bluetooth needs every service
@@ -24,10 +27,11 @@ const ISSC_WRITE   = '49535343-aca3-481c-91ec-d85e28a60318';
 // apply the SAME last-match logic as BleManager.pickService() over exactly that set.
 const FF_FAMILY = Array.from({ length: 256 }, (_, i) =>
   '0000ff' + i.toString(16).padStart(2, '0') + '-0000-1000-8000-00805f9b34fb');
-const OPTIONAL_SERVICES = [ISSC_SERVICE, ...FF_FAMILY];
+const NORDIC_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';   // Nordic UART - a common non-ISSC/FF BLE-UART module
+const OPTIONAL_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE, ...FF_FAMILY];
 
 const CONNECT_CODE_INTERVAL_MS = 6500;
-const WRITE_GAP_MS = 140;
+const WRITE_GAP_MS = 200;         // match the native app's ~200 ms spacing (gentler on the BLE module)
 const RECONNECT_BASE_MS = 2000;
 const RECONNECT_MAX_MS = 20000;
 
@@ -222,6 +226,12 @@ function onNotify(value) {                       // value: DataView
 
 function dispatch(t) {
   if (!diagParsed) { diagParsed = true; log('telemetry ok - first frame 0x' + (t[1] & 0xFF).toString(16)); }
+  if (!linkConfirmed) {          // first real frame proves the device is truly here -> now "connected"
+    linkConfirmed = true;
+    if (linkTimer) { clearTimeout(linkTimer); linkTimer = null; }
+    setStatus('connected');
+    maybeRunDeepAction();
+  }
   switch (t[1]) {
     case 0x71:
       updateFrom71(t);
@@ -262,6 +272,7 @@ let notifyReady = false, connected = false, userDisconnect = false;
 let deviceName = '';
 let reconnectDelay = RECONNECT_BASE_MS;
 let keepAliveTimer = null;
+let linkConfirmed = false, linkTimer = null;   // "connected" is shown only once real telemetry arrives
 
 async function pickAndConnect() {
   if (!navigator.bluetooth) { log('Web Bluetooth not available - use Bluefy (iOS) or Chrome.'); return; }
@@ -296,25 +307,38 @@ async function connectGatt() {
   notifyChar.addEventListener('characteristicvaluechanged', ev => {
     try { onNotify(ev.target.value); } catch (e) {}
   });
-  notifyReady = true; connected = true;
+  notifyReady = true; connected = true; linkConfirmed = false;
   reconnectDelay = RECONNECT_BASE_MS;
-  setStatus('connected');
+  // The GATT link is up, but iOS reports success even for a bonded device that is far out of range
+  // (a phantom link). Do NOT show "connected" yet - wait for REAL telemetry (see dispatch). The
+  // keep-alive below asks the scooter to stream; if nothing arrives in time it was a phantom.
+  setStatus('linking');
   refreshFinField();
-  renderLive();                  // show the FIN + tiles immediately from the BLE name, not only on a frame
+  renderLive();                  // show the FIN + tiles from the BLE name
   try { if (device && device.id) localStorage.setItem(LS_DEVICE, device.id); } catch (e) {}
-  log('connected. notify=' + notifyChar.uuid.slice(0, 8) + ' write=' + writeChar.uuid.slice(0, 8));
+  log('link up, waiting for data. notify=' + notifyChar.uuid.slice(0, 8) + ' write=' + writeChar.uuid.slice(0, 8));
   startKeepAlive();
-  maybeRunDeepAction();          // a shortcut's ?do=unlock can fire as soon as the FIN is known
+  if (linkTimer) clearTimeout(linkTimer);
+  linkTimer = setTimeout(() => {
+    if (!linkConfirmed && connected) {
+      log('no data - device not responding (out of range?), disconnecting');
+      userDisconnect = true;
+      try { if (device && device.gatt.connected) device.gatt.disconnect(); } catch (e) {}
+      connected = false; notifyReady = false;
+      setStatus('no-data');
+      resetTiles(); refreshFinField(); refreshSettingsInputs();
+    }
+  }, 6000);
 }
 
 // The common ISSC/FF services to fetch directly when enumeration is unavailable (Bluefy).
-const COMMON_SERVICES = [ISSC_SERVICE,
+const COMMON_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE,
   '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb',
   '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe5-0000-1000-8000-00805f9b34fb',
   '0000fff6-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb'];
 
 async function pickService(srv) {
-  const isMatch = u => u.startsWith('495353') || u.startsWith('0000ff');
+  const isMatch = u => u.startsWith('495353') || u.startsWith('0000ff') || /^ff[0-9a-f]{2}$/.test(u);
   async function direct(list) {
     for (const uuid of list) {
       try { const s = await srv.getPrimaryService(uuid); if (s) { log('service (direct): ' + uuid.slice(0, 8)); return s; } }
@@ -363,7 +387,8 @@ async function pickCharacteristics(svc) {
 }
 
 function onDisconnected() {
-  connected = false; notifyReady = false;
+  connected = false; notifyReady = false; linkConfirmed = false;
+  if (linkTimer) { clearTimeout(linkTimer); linkTimer = null; }
   stopKeepAlive();
   setStatus('disconnected');
   resetTiles();
@@ -386,6 +411,8 @@ async function reconnect() {
 
 function disconnectBle() {
   userDisconnect = true;
+  linkConfirmed = false;
+  if (linkTimer) { clearTimeout(linkTimer); linkTimer = null; }
   stopKeepAlive();
   try { if (device && device.gatt.connected) device.gatt.disconnect(); } catch (e) {}
   connected = false; notifyReady = false;
@@ -592,7 +619,7 @@ function refreshToggle() {
   const locked = fin.startsWith('TDE');
   btn.textContent = locked ? 'Unlock' : 'Lock';
   btn.dataset.action = locked ? 'unlock' : 'lock';
-  btn.disabled = !connected;
+  btn.disabled = !linkConfirmed;   // only actionable once a real telemetry frame confirmed the link
 }
 function renderLive() {
   $('t-wheel').textContent = S.received71 ? S.wheel.toFixed(1) : '-';
@@ -641,4 +668,6 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-set-cruise').addEventListener('click', () => setCruise(parseInt($('cruise-in').value, 10)));
   refreshSettingsInputs();   // start disabled; enabled + prefilled once a scooter reports its config
   if (!navigator.bluetooth) log('Web Bluetooth not available. On iOS use the Bluefy browser.');
+  parseDeepLink();                              // read ?do=lock|unlock from a home-screen shortcut
+  if (pendingDeepAction) tryAutoReconnect();    // only a shortcut auto-reconnects; a normal open uses the chooser
 });
