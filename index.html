@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teverun Fighter Mini (eKFV) Unlock</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Teverun Fighter Mini (eKFV) <span>Unlock</span></h1>
+    <span class="status" id="status" data-state="disconnected">disconnected</span>
+  </header>
+  <p class="sub">Live lock/unlock over Web Bluetooth. Works in Bluefy (iOS) or Chrome (Android/desktop).</p>
+
+  <div class="card">
+    <h2>How to start</h2>
+    <ol class="steps">
+      <li>Download the firmware below and flash it once with the official Teverun app (one time per scooter).</li>
+      <li>Tap <b>Connect</b> and pick your scooter.</li>
+      <li>Use <b>Unlock</b> / <b>Lock</b> and set wheel diameter + cruise.</li>
+    </ol>
+    <p class="hint">New here? See <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/README.md#how-to-use-it" target="_blank" rel="noopener">how to use it</a> in the guide.</p>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+    <div class="btns">
+      <button class="primary" id="btn-connect">Connect</button>
+      <button id="btn-disconnect">Disconnect</button>
+      <button class="primary" id="btn-unlock">Unlock</button>
+      <button id="btn-lock">Lock</button>
+    </div>
+    <p class="hint">Unlock re-applies your saved wheel + cruise. Lock forces wheel to 10 and turns cruise off.</p>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="tile"><b id="t-wheel">-</b><small>Wheel</small></div>
+      <div class="tile"><b id="t-cruise">-</b><small>Cruise</small></div>
+    </div>
+    <div class="row"><span class="fin">FIN / name: <span id="t-fin">-</span></span></div>
+  </div>
+
+  <div class="card">
+    <h2>Settings</h2>
+    <div class="row">
+      <label class="full">Wheel diameter</label>
+      <input id="wheel-in" type="number" step="0.1" min="1" placeholder="connect first" disabled>
+      <button id="btn-set-wheel" disabled>Set wheel</button>
+    </div>
+    <div class="row">
+      <label class="full">Cruise</label>
+      <select id="cruise-in" disabled>
+        <option value="0">Off</option>
+        <option value="1">Auto</option>
+        <option value="2">Manual</option>
+      </select>
+      <button id="btn-set-cruise" disabled>Set cruise</button>
+    </div>
+    <p class="hint">Wheel + cruise are saved on this device and re-applied automatically after Unlock.</p>
+  </div>
+
+  <div class="card">
+    <h2>Firmware</h2>
+    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_PATCHED_R5_4_19.hex" download="AWIVCU_PATCHED_R5_4_19.hex">Download firmware</a>
+    <p class="hint">Flash it once with the official Teverun app. It enables the live-toggle this page controls.</p>
+  </div>
+
+  <div class="card">
+    <h2>Identity (FIN)</h2>
+    <div class="row"><input id="fin" class="full" placeholder="connect a scooter first" autocapitalize="characters" autocomplete="off" spellcheck="false" disabled></div>
+    <p class="warn">Editable only after a FIN was read from the scooter. Fallback only - use the <b>Unlock</b> / <b>Lock</b> buttons. A wrong identity breaks the live-toggle (recoverable: type the correct FIN back).</p>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </div>
+
+  <footer class="foot">
+    <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/README.md" target="_blank" rel="noopener">Guide</a>
+    <a href="https://github.com/Laufbursche42/trfm-unlock" target="_blank" rel="noopener">Source</a>
+    <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/README.md#disclaimer" target="_blank" rel="noopener">Disclaimer</a>
+    <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/license.md" target="_blank" rel="noopener">License</a>
+    <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/TRADEMARKS.md" target="_blank" rel="noopener">Trademarks</a>
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
