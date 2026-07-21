@@ -63,11 +63,12 @@
       <button id="btn-set-cruise" disabled>Set cruise</button>
     </div>
     <p class="hint">Wheel + cruise are saved on this device and re-applied automatically after Unlock.</p>
-    <p class="warn"><b>Set the wheel size here, not in the original app.</b> The controller stores the wheel size per gear, and the original Teverun app writes it to only one gear - so the other gears keep an old value and your speed changes when you shift gear (this is why an unlocked scooter can suddenly read only 15 km/h). This page writes the wheel size into every gear, so it stays consistent.</p>
+    <p class="warn"><b>Set the wheel size here, not in the original app.</b> The controller stores the wheel size per gear, and the original Teverun app writes it to only one gear - so the other gears keep an old value and your speed changes when you shift gear (this is why an unlocked scooter can suddenly read only 15 km/h). This page writes the wheel size into every gear, so it stays consistent. Keep the wheel in the scooter's display menu (P-settings) at 10 - this firmware never changes that value, so whatever is set there is what a roadside check reads.</p>
   </div>
 
   <div class="card">
     <h2>Firmware</h2>
+    <p class="warn"><b>Before you flash - reset the display wheel to 10.</b> If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never changes the value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your real wheel size in this app instead: it applies only while unlocked and is forced back to 10 when you lock, so the display always reads 10.</p>
     <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_PATCHED_R5_4_19.hex" download="AWIVCU_PATCHED_R5_4_19.hex">Download firmware</a>
     <p class="hint">Flash it once with the official Teverun app. It enables the live-toggle this page controls.</p>
     <p class="danger"><b>Hardware:</b> This firmware is built for the <b>IVCU hardware version 5.x</b> only. It may also run on the "Ali box", but that is <b>untested and not supported</b> - flashing it there is entirely at your own risk.</p>
