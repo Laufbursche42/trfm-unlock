@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v5';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v6';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -189,6 +189,20 @@ function buildSettingFrame(n, gearByte, eabsLevel, fStartLevel, rStartLevel, per
 function sendSettingCode() {
   return buildSettingFrame(2, 1, S.eabsLevel, S.fStartLevel, S.rStartLevel,
                            S.assistSpeedLimit, S.fCurrent, S.rCurrent);
+}
+
+// Write the current settings into EVERY gear slot. The wheel diameter is global to the rider, but the
+// VCU stores it per gear: a mode-2 (a[2]=2) frame is memcpy'd into config slot ARR[a[3]], so writing
+// only one gear leaves the other slots with a stale wheel - and the live speed uses the ACTIVE gear's
+// slot, so the same scooter reads a different speed per gear. Push the frame (which carries the wheel
+// in a[6]) to every gear 0..5, current gear LAST so the runtime that the VCU re-applies after each
+// write settles on the gear the rider is actually on.
+function enqueueAllGears() {
+  const cur = S.gear & 0xFF;
+  const frame = (g) => buildSettingFrame(2, g, S.eabsLevel, S.fStartLevel, S.rStartLevel,
+                                         S.assistSpeedLimit, S.fCurrent, S.rCurrent);
+  for (let g = 0; g <= 5; g++) if (g !== cur) enqueue(frame(g));
+  enqueue(frame(cur));
 }
 
 // ─────────────────────────── telemetry parse (subset of FrameParser.java) ───────────────────────────
@@ -489,8 +503,8 @@ function setWheel(v) {
   if (!requireReady()) return;
   S.wheel = v;
   persistWheel(v);
-  enqueue(sendSettingCode());
-  log('wheel set to ' + v + ' (saved)');
+  enqueueAllGears();
+  log('wheel set to ' + v + ' (saved, all gears)');
 }
 
 // User sets cruise: 0 off, 1 auto, 2 manual. Save it, then write the full 0x18.
@@ -526,7 +540,7 @@ function lock() {
   // the controller accepts it, then lock via the FIN.
   S.wheel = 10;
   S.cruise = 0;
-  enqueue(sendSettingCode());
+  enqueueAllGears();
   log('lock: wheel 10, cruise off, FIN -> ' + locked);
   enqueue(setDeviceName(locked));
   pendingRestore = false; restoreArmed = false;
@@ -541,8 +555,8 @@ function onSettingsFrame() {
     const w = savedWheel(), c = savedCruise();
     if (w != null) S.wheel = w;
     if (c != null) S.cruise = c;
-    enqueue(sendSettingCode());
-    log('restored after unlock: wheel=' + (w != null ? w : '-') + ' cruise=' + (c != null ? c : '-'));
+    enqueueAllGears();
+    log('restored after unlock: wheel=' + (w != null ? w : '-') + ' cruise=' + (c != null ? c : '-') + ' (all gears)');
     pendingRestore = false; restoreArmed = false;
   }
 }
