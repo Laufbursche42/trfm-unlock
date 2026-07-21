@@ -8,6 +8,8 @@
 
 'use strict';
 
+const BUILD = 'v4';   // logged on load so a tester's log reveals which deployed build is running
+
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
 // Only real scooters: the BLE name is the FIN - "TDE..." when locked, "T1..." when unlocked. The old
@@ -660,6 +662,7 @@ function refreshSettingsInputs() {
 
 window.addEventListener('DOMContentLoaded', () => {
   finField = $('fin');
+  log('tr-unlock build ' + BUILD);   // so a tester's log shows which deployed version they run
   $('btn-connect').addEventListener('click', pickAndConnect);
   $('btn-disconnect').addEventListener('click', disconnectBle);
   $('btn-toggle').addEventListener('click', () => {
