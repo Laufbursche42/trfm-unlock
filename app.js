@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v4';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v5';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -346,9 +346,13 @@ const COMMON_SERVICES = [ISSC_SERVICE, NORDIC_SERVICE,
 async function pickService(srv) {
   const isMatch = u => u.startsWith('495353') || u.startsWith('6e400001') || /^0000f[c-f]/.test(u) || /^f[c-f][0-9a-f]{2}$/.test(u);
   async function direct(list) {
-    for (const uuid of list) {
-      try { const s = await srv.getPrimaryService(uuid); if (s) { log('service (direct): ' + uuid.slice(0, 8)); return s; } }
-      catch (e) { /* not present - keep trying */ }
+    const BATCH = 16;   // fetch in parallel batches so scanning the whole range stays fast
+    for (let i = 0; i < list.length; i += BATCH) {
+      const batch = list.slice(i, i + BATCH);
+      const rs = await Promise.allSettled(batch.map(u => srv.getPrimaryService(u)));
+      for (let j = 0; j < rs.length; j++) {
+        if (rs[j].status === 'fulfilled' && rs[j].value) { log('service (direct): ' + batch[j].slice(0, 8)); return rs[j].value; }
+      }
     }
     return null;
   }
@@ -368,7 +372,7 @@ async function pickService(srv) {
     if (d) return d;
     if (attempt === 0) { log('no service yet - waiting for GATT discovery, retrying'); await sleep(1500); }
   }
-  return null;   // enumerate (broad 0xFCxx-0xFFxx declaration) plus the direct COMMON fetch cover the modules
+  return await direct(VENDOR_16BIT);   // last resort: batched direct-fetch over the whole declared 0xFCxx-0xFFxx range
 }
 
 async function pickCharacteristics(svc) {
