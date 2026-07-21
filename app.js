@@ -283,14 +283,38 @@ async function connectGatt() {
   maybeRunDeepAction();          // a shortcut's ?do=unlock can fire as soon as the FIN is known
 }
 
+// The common ISSC/FF services to fetch directly when enumeration is unavailable (Bluefy).
+const COMMON_SERVICES = [ISSC_SERVICE,
+  '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb',
+  '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe5-0000-1000-8000-00805f9b34fb',
+  '0000fff6-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb'];
+
 async function pickService(srv) {
-  const services = await srv.getPrimaryServices();
-  let chosen = null;
-  for (const s of services) {
-    const u = s.uuid.toLowerCase();
-    if (u.startsWith('495353') || u.startsWith('0000ff')) chosen = s;   // last match wins (as native)
+  const isMatch = u => u.startsWith('495353') || u.startsWith('0000ff');
+  async function direct(list) {
+    for (const uuid of list) {
+      try { const s = await srv.getPrimaryService(uuid); if (s) { log('service (direct): ' + uuid.slice(0, 8)); return s; } }
+      catch (e) { /* not present - keep trying */ }
+    }
+    return null;
   }
-  return chosen;
+  // The native app waits ~1500 ms after connect before discovering services. In Web Bluetooth the
+  // service list can likewise be empty right after connect (Bluefy), so try twice with a wait.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let services = [];
+    try { services = await srv.getPrimaryServices(); } catch (e) { log('service enumerate failed: ' + e); }
+    if (services.length) {
+      log('services: ' + services.map(s => s.uuid.slice(0, 8)).join(', '));
+      let chosen = null;
+      for (const s of services) if (isMatch(s.uuid.toLowerCase())) chosen = s;   // last match wins (as native)
+      if (chosen) return chosen;
+    }
+    // Direct fetch of the same ISSC/FF set the native app matches - works even when enumeration is empty.
+    const d = await direct(COMMON_SERVICES);
+    if (d) return d;
+    if (attempt === 0) { log('no service yet - waiting for GATT discovery, retrying'); await sleep(1500); }
+  }
+  return await direct(FF_FAMILY.filter(u => COMMON_SERVICES.indexOf(u) < 0));   // last resort: whole 0000ffxx family
 }
 
 async function pickCharacteristics(svc) {
@@ -301,7 +325,9 @@ async function pickCharacteristics(svc) {
     try { writeChar  = await svc.getCharacteristic(ISSC_WRITE); } catch (e) {}
     if (notifyChar && writeChar) return;
   }
-  const chars = await svc.getCharacteristics();
+  let chars = [];
+  try { chars = await svc.getCharacteristics(); } catch (e) { log('char enumerate failed: ' + e); }
+  log('chars on ' + svc.uuid.slice(0, 8) + ': ' + chars.map(c => c.uuid.slice(0, 8)).join(', '));
   let anyWritable = null;
   for (const c of chars) {                       // last notify / last write-only wins (as native)
     const p = c.properties;
