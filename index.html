@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <div class="wrap">
@@ -35,7 +35,7 @@
       <button id="btn-disconnect">Disconnect</button>
       <button class="primary span2" id="btn-toggle" disabled>Unlock</button>
     </div>
-    <p class="hint">The button shows the action for the current state: <b>Unlock</b> when the scooter is locked (FIN starts with TDE), <b>Lock</b> when it is open. Unlock re-applies your saved wheel + cruise; Lock forces wheel to 10 and turns cruise off.</p>
+    <p class="hint">The button shows the action for the current state - read live from the scooter: <b>Unlock</b> when it is locked, <b>Lock</b> when it is open. Lock and Unlock control the speed lock directly over BLE (cmd 0x1B).</p>
   </div>
 
   <div class="card">
@@ -109,8 +109,9 @@
     <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/license.md" target="_blank" rel="noopener">License</a>
     <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
     <a href="https://github.com/Laufbursche42/trfm-unlock/blob/main/TRADEMARKS.md" target="_blank" rel="noopener">Trademarks</a>
+    <span class="ver" id="build-ver">build -</span>
   </footer>
 </div>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

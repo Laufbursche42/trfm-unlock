@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v7';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v8';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -682,6 +682,7 @@ function refreshSettingsInputs() {
 window.addEventListener('DOMContentLoaded', () => {
   finField = $('fin');
   log('tr-unlock build ' + BUILD);   // so a tester's log shows which deployed version they run
+  { const bv = $('build-ver'); if (bv) bv.textContent = 'build ' + BUILD; }   // visible in the footer too
   $('btn-connect').addEventListener('click', pickAndConnect);
   $('btn-disconnect').addEventListener('click', disconnectBle);
   $('btn-toggle').addEventListener('click', () => {
