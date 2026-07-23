@@ -68,16 +68,16 @@
 
   <div class="card">
     <h2>Firmware</h2>
-    <p class="warn"><b>Before you flash - reset the display wheel to 10.</b> If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never changes the value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your real wheel size in this app instead: it applies only while unlocked and is forced back to 10 when you lock, so the display always reads 10.</p>
-    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_PATCHED_R5_4_19.hex" download="AWIVCU_PATCHED_R5_4_19.hex">Download firmware</a>
-    <p class="hint">Flash it once with the official Teverun app. It enables the live-toggle this page controls.</p>
+    <p class="warn"><b>Before you flash - reset the display wheel to 10.</b> If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never changes the value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your wheel size in this app to calibrate the speedometer: it only affects the displayed speed (the tacho), never the controller and never the value stored in the display P-menu - so the display keeps reading whatever is set on the scooter (10), locked or unlocked.</p>
+    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_TESTLOCK9_R5_4_19.hex" download="AWIVCU_TESTLOCK9_R5_4_19.hex">Download firmware</a>
+    <p class="hint">Flash it once with the official Teverun app. It enables the BLE speed lock this page controls (Lock / Unlock).</p>
     <p class="danger"><b>Hardware:</b> This firmware is built for the <b>IVCU hardware version 5.x</b> only. It may also run on the "Ali box", but that is <b>untested and not supported</b> - flashing it there is entirely at your own risk.</p>
   </div>
 
   <div class="card">
     <h2>Identity (FIN)</h2>
     <div class="row"><input id="fin" class="full" placeholder="connect a scooter first" autocapitalize="characters" autocomplete="off" spellcheck="false" disabled></div>
-    <p class="warn">Editable only after a FIN was read from the scooter. Fallback only - use the <b>Unlock</b> / <b>Lock</b> buttons. A wrong identity breaks the live-toggle (recoverable: type the correct FIN back).</p>
+    <p class="warn">Editable only after a FIN was read from the scooter. The speed lock is now a direct BLE command (cmd 0x1B) and is independent of the FIN - use the <b>Unlock</b> / <b>Lock</b> buttons. Editing the identity here no longer affects locking.</p>
     <p class="hint">Unlocked with the Android app? This page cannot re-lock it - lock it once in the Android app, then this page works again.</p>
   </div>
 

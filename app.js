@@ -114,6 +114,15 @@ function setDeviceName(name) {         // cmd 0x1f: set VCU identity / BLE name 
   }
   return finalizeFrame(a);
 }
+// cmd 0x1B: BLE speed lock/unlock (TESTLOCK firmware). AA 1B <val> 00*16 CRC. val 1 = UNLOCK, 0 = LOCK.
+// Zero-padded (NOT 0xFF): the firmware handler reads only the value byte, rest must be 0.
+function setLockState(unlocked) {
+  const a = new Array(19).fill(0);
+  a[0] = 170;               // 0xAA
+  a[1] = 0x1B;
+  a[2] = unlocked ? 1 : 0;
+  return finalizeFrame(a);
+}
 
 // ─────────────────────────── settings state (mirrors SettingsState.java) ───────────────────────────
 
@@ -126,6 +135,10 @@ const S = {
   rmStatus: 1, doubleMotor: 1,
   received71: false,
 };
+
+// Per-gear cache: each gear's OWN speed/current/assist, filled from 55 71 telemetry, so we can write
+// wheel + cruise into every gear WITHOUT disturbing that gear's other per-gear settings.
+const gearCache = {};
 
 function updateFrom71(t) {
   S.gear = t[3] & 0xFF;
@@ -154,6 +167,8 @@ function updateFrom71(t) {
   S.sleepTime = sp & 0x07;
   S.prTime = (sp >> 3) & 0x1F;
   S.received71 = true;
+  gearCache[S.gear] = { assistSpeedLimit: S.assistSpeedLimit, fCurrent: S.fCurrent, rCurrent: S.rCurrent,
+                        eabsLevel: S.eabsLevel, fStartLevel: S.fStartLevel, rStartLevel: S.rStartLevel };
 }
 
 // Full 0x18 settings frame. All shared config comes from S; per-gear bytes from the args. Mirrors
@@ -185,29 +200,25 @@ function buildSettingFrame(n, gearByte, eabsLevel, fStartLevel, rStartLevel, per
   return finalizeFrame(a);
 }
 
-// Generic full write, mode 2, r=1 - exactly the original app's sendSetting() default.
-function sendSettingCode() {
-  return buildSettingFrame(2, 1, S.eabsLevel, S.fStartLevel, S.rStartLevel,
-                           S.assistSpeedLimit, S.fCurrent, S.rCurrent);
-}
-
-// Write the current settings into EVERY gear slot. The wheel diameter is global to the rider, but the
-// VCU stores it per gear: a mode-2 (a[2]=2) frame is memcpy'd into config slot ARR[a[3]], so writing
-// only one gear leaves the other slots with a stale wheel - and the live speed uses the ACTIVE gear's
-// slot, so the same scooter reads a different speed per gear. Push the frame (which carries the wheel
-// in a[6]) to every gear 0..5, current gear LAST so the runtime that the VCU re-applies after each
-// write settles on the gear the rider is actually on.
-function enqueueAllGears() {
+// Write wheel + cruise into EVERY gear we have telemetry for, using each gear's OWN speed/current/assist
+// (from gearCache) so ONLY the wheel + cruise change and every gear keeps its own other settings. The
+// active gear is written last. Gears never seen this session are skipped (not overwritten with wrong data).
+function writeWheelCruiseAllGears() {
   const cur = S.gear & 0xFF;
-  const frame = (g) => buildSettingFrame(2, g, S.eabsLevel, S.fStartLevel, S.rStartLevel,
-                                         S.assistSpeedLimit, S.fCurrent, S.rCurrent);
-  for (let g = 0; g <= 5; g++) if (g !== cur) enqueue(frame(g));
-  enqueue(frame(cur));
+  const gears = new Set(Object.keys(gearCache).map(Number));
+  gears.add(cur);
+  const writeGear = (g) => {
+    const c = gearCache[g] || S;   // for the active gear (always current) S already holds its values
+    enqueue(buildSettingFrame(2, g, c.eabsLevel, c.fStartLevel, c.rStartLevel,
+                              c.assistSpeedLimit, c.fCurrent, c.rCurrent));
+  };
+  for (const g of gears) if (g !== cur) writeGear(g);
+  writeGear(cur);
 }
 
 // ─────────────────────────── telemetry parse (subset of FrameParser.java) ───────────────────────────
 
-const T = { speed: 0, soc: 0, gear: 0, speedRaw: 0, volt: 0, frameNum: '', fin: '' };
+const T = { speed: 0, soc: 0, gear: 0, speedRaw: 0, volt: 0, frameNum: '', fin: '', lock: null };
 
 function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
 
@@ -254,6 +265,8 @@ function dispatch(t) {
   switch (t[1]) {
     case 0x71:
       updateFrom71(t);
+      // TESTLOCK firmware streams the lock flag in on-wire t[2]: 0 = LOCKED, 1 = UNLOCKED.
+      T.lock = (t[2] & 1) === 0 ? 'locked' : 'unlocked';
       T.gear = t[3] & 0xFF;
       onSettingsFrame();
       maybeRunDeepAction();      // a shortcut's ?do=lock waits for this first 55 71
@@ -503,8 +516,8 @@ function setWheel(v) {
   if (!requireReady()) return;
   S.wheel = v;
   persistWheel(v);
-  enqueueAllGears();
-  log('wheel set to ' + v + ' (saved, all gears)');
+  writeWheelCruiseAllGears();
+  log('wheel set to ' + v + ' (saved)');
 }
 
 // User sets cruise: 0 off, 1 auto, 2 manual. Save it, then write the full 0x18.
@@ -512,39 +525,26 @@ function setCruise(v) {
   if (!requireReady()) return;
   S.cruise = v;
   persistCruise(v);
-  enqueue(sendSettingCode());
+  writeWheelCruiseAllGears();
   log('cruise set to ' + v + ' (saved)');
 }
 
+// Lock/unlock now go over the TESTLOCK firmware's cmd 0x1B (unlockFlag), NOT the FIN rename.
+// The FIN never changes, so there is no rename-reconnect and no wheel/cruise restore dance; the real
+// lock state comes back streamed in 55 71 t[2] and drives refreshToggle on the next frame.
 function unlock() {
   if (!connected) { log('connect first'); return; }
-  const fin = (finField.value || deviceName || '').trim();
-  if (!fin.startsWith('TDE')) { log('already unlocked (FIN not TDE...)'); }
-  const open = fin.startsWith('TDE') ? ('T' + fin.slice(3)) : fin;   // drop "DE"
-  log('unlock -> FIN ' + open);
-  enqueue(setDeviceName(open));
-  // Arm the wheel + cruise restore for the fresh 55 71 after the rename-reconnect.
-  pendingRestore = true; restoreArmed = false;
-  deviceName = open; finField.value = open; updateFin();
+  log('unlock -> cmd 0x1B');
+  enqueue(setLockState(true));
+  T.lock = 'unlocked';     // optimistic; the streamed t[2] confirms/corrects it
   refreshToggle();
 }
 
 function lock() {
-  if (!requireReady()) return;
-  const fin = (finField.value || deviceName || '').trim();
-  const locked = fin.startsWith('TDE') ? fin : ('TDE' + fin.slice(1));   // add "DE"
-  // Remember the current wheel + cruise so a later unlock restores exactly them.
-  persistWheel(S.wheel);
-  persistCruise(S.cruise);
-  // eKFV: force wheel to 10 and turn cruise off. Written while still open (before the rename), so
-  // the controller accepts it, then lock via the FIN.
-  S.wheel = 10;
-  S.cruise = 0;
-  enqueueAllGears();
-  log('lock: wheel 10, cruise off, FIN -> ' + locked);
-  enqueue(setDeviceName(locked));
-  pendingRestore = false; restoreArmed = false;
-  deviceName = locked; finField.value = locked; updateFin();
+  if (!connected) { log('connect first'); return; }
+  log('lock -> cmd 0x1B');
+  enqueue(setLockState(false));
+  T.lock = 'locked';
   refreshToggle();
 }
 
@@ -555,8 +555,8 @@ function onSettingsFrame() {
     const w = savedWheel(), c = savedCruise();
     if (w != null) S.wheel = w;
     if (c != null) S.cruise = c;
-    enqueueAllGears();
-    log('restored after unlock: wheel=' + (w != null ? w : '-') + ' cruise=' + (c != null ? c : '-') + ' (all gears)');
+    writeWheelCruiseAllGears();
+    log('restored after unlock: wheel=' + (w != null ? w : '-') + ' cruise=' + (c != null ? c : '-'));
     pendingRestore = false; restoreArmed = false;
   }
 }
@@ -634,13 +634,14 @@ function log(m) {
   const el = $('log'); if (!el) return;
   el.textContent = ('[' + new Date().toLocaleTimeString() + '] ' + m + '\n') + el.textContent;
 }
-// The single lock/unlock control reflects the current state: "Unlock" when the scooter is locked
-// (FIN starts with TDE), "Lock" when it is open. Driven by the live FIN, refreshed on every frame.
+// The single lock/unlock control reflects the current state: "Unlock" when the scooter is locked,
+// "Lock" when it is open. Driven by the real IVCU state streamed in 55 71 t[2] (TESTLOCK firmware);
+// falls back to the FIN prefix only on old firmware that does not stream the lock byte.
 function refreshToggle() {
   const btn = $('btn-toggle');
   if (!btn) return;
   const fin = ((finField && finField.value) || deviceName || '').trim();
-  const locked = fin.startsWith('TDE');
+  const locked = (T.lock != null) ? (T.lock === 'locked') : fin.startsWith('TDE');
   btn.textContent = locked ? 'Unlock' : 'Lock';
   btn.dataset.action = locked ? 'unlock' : 'lock';
   btn.disabled = !linkConfirmed;   // only actionable once a real telemetry frame confirmed the link
