@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v10';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v11';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -669,7 +669,12 @@ let settingsPrefilled = false;
 function refreshSettingsInputs() {
   const ready = connected && S.received71;
   const win = $('wheel-in'), cin = $('cruise-in'), bw = $('btn-set-wheel'), bc = $('btn-set-cruise');
-  [win, cin, bw, bc].forEach(el => { if (el) el.disabled = !ready; });
+  // Cruise stays editable once the scooter reported its config. The wheel size may only be changed
+  // while UNLOCKED, so a locked (roadside-legal) scooter keeps an honest speedometer. Lock state comes
+  // from the streamed 55 71 t[2]; if it is not known yet (T.lock == null) the wheel stays editable.
+  const wheelLocked = ready && T.lock === 'locked';
+  [cin, bc].forEach(el => { if (el) el.disabled = !ready; });
+  [win, bw].forEach(el => { if (el) { el.disabled = !ready || wheelLocked; el.title = wheelLocked ? 'Unlock the scooter to change the wheel size' : ''; } });
   if (ready && !settingsPrefilled) {
     if (win) win.value = S.wheel.toFixed(1);
     if (cin) cin.value = String(S.cruise);
