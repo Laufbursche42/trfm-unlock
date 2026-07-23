@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v12';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v13';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -282,6 +282,13 @@ function dispatch(t) {
     }
     case 0x52: T.volt = u16(t, 2) * 0.1; T.soc = t[8] & 0xFF; break;
     case 0x42: T.frameNum = ascii(t, 2, 18); updateFin(); break;
+    case 0x43:
+      // 55 43 version frame: t[2..4] = base VCU sw version (5.4.19); t[6] = our internal build number
+      // stamped into the hwVer major byte by the patcher (FirmwarePatcher FW_BUILD), so the app can
+      // read which TESTLOCK build is on the controller.
+      if ((t[2] & 0xFF) > 0) T.swVer = (t[2] & 0xFF) + '.' + (t[3] & 0xFF) + '.' + (t[4] & 0xFF);
+      T.fwBuild = t[6] & 0xFF;
+      break;
     default: break;
   }
   renderLive();
@@ -650,6 +657,9 @@ function renderLive() {
   $('t-wheel').textContent = S.received71 ? S.wheel.toFixed(1) : '-';
   $('t-cruise').textContent = S.received71 ? ['Off', 'Auto', 'Manual'][S.cruise] || S.cruise : '-';
   $('t-fin').textContent = T.fin || deviceName || '-';
+  $('t-fwver').textContent = (T.fwBuild != null && T.fwBuild > 0)
+    ? ('V' + T.fwBuild + (T.swVer ? ' (R' + T.swVer + ')' : ''))
+    : '-';
   refreshSettingsInputs();
   refreshToggle();
 }
