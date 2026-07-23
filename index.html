@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 <div class="wrap">
@@ -70,7 +70,8 @@
   <div class="card">
     <h2>Firmware</h2>
     <p class="warn"><b>The wheel size only calibrates the speedometer.</b> While unlocked the value you set here drives what the scooter display reads for speed and distance (the tacho), so the display shows your calibrated speed. While locked the display shows the stock 10.0" so a roadside check reads stock. It never changes the motor controller (ESC), so the real speed is unchanged. You can only change the wheel size while unlocked.</p>
-    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_TESTLOCK12_R5_4_19.hex" download="AWIVCU_TESTLOCK12_R5_4_19.hex">Download firmware</a>
+    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_TESTLOCK12_R5_4_19.hex?b=5be623" download="AWIVCU_TESTLOCK12_R5_4_19.hex">Download firmware (V12)</a>
+    <p class="hint">After flashing, the <b>Firmware</b> line above must read <b>V12</b>. If it still shows a different version you flashed a cached/old file - hard-reload this page and download again.</p>
     <p class="hint">Flash it once with the official Teverun app. It enables the BLE speed lock this page controls (Lock / Unlock).</p>
     <p class="danger"><b>Hardware:</b> This firmware is built for the <b>IVCU hardware version 5.x</b> only. It may also run on the "Ali box", but that is <b>untested and not supported</b> - flashing it there is entirely at your own risk.</p>
   </div>
@@ -113,6 +114,6 @@
     <span class="ver" id="build-ver">build -</span>
   </footer>
 </div>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
