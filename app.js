@@ -295,7 +295,7 @@ function ascii(t, from, toInc) {
   }
   return s.trim();
 }
-function updateFin() { T.fin = ((deviceName || '') + (T.frameNum || '')).trim(); }
+function updateFin() { T.fin = (deviceName || T.frameNum || '').trim(); }   // FIN only (BLE name; telemetry as fallback)
 
 // ─────────────────────────── BLE connection ───────────────────────────
 
