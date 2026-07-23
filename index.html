@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <div class="wrap">
@@ -63,13 +63,13 @@
       <button id="btn-set-cruise" disabled>Set cruise</button>
     </div>
     <p class="hint">Wheel + cruise are saved on this device and re-applied automatically after Unlock.</p>
-    <p class="warn"><b>Set the wheel size here or in the <a href="https://github.com/Laufbursche42/tr-lb-edition" target="_blank" rel="noopener">Laufbursche Edition Android app</a>, not in the original app.</b> Both read and write the wheel over the VCU. The controller stores the wheel size per gear and the original Teverun app writes it to only one gear - so the other gears keep an old value and your speed changes when you shift gear (this is why an unlocked scooter can suddenly read only 15 km/h). This page and the Laufbursche Edition write the wheel size into every gear, so it stays consistent. The scooter display shows the speed calibrated from the wheel value you set here - not a fixed number. You can only change it while the scooter is unlocked, so a locked scooter keeps an honest speedometer.</p>
+    <p class="warn"><b>Set the wheel size here or in the <a href="https://github.com/Laufbursche42/tr-lb-edition" target="_blank" rel="noopener">Laufbursche Edition Android app</a>, not in the original app.</b> Both read and write the wheel over the VCU. The controller stores the wheel size per gear and the original Teverun app writes it to only one gear - so the other gears keep an old value and your speed changes when you shift gear (this is why an unlocked scooter can suddenly read only 15 km/h). This page and the Laufbursche Edition write the wheel size into every gear, so it stays consistent. While unlocked the scooter display shows the speed calibrated from the wheel value you set here; while locked the display shows the stock 10.0" so a roadside check reads stock. You can only change the wheel size while the scooter is unlocked.</p>
   </div>
 
   <div class="card">
     <h2>Firmware</h2>
-    <p class="warn"><b>The wheel size only calibrates the speedometer.</b> The value you set in this app drives what the scooter display reads for speed and distance (the tacho) - so the display shows your calibrated speed, not a fixed number. It never changes the motor controller (ESC), so the real speed is unchanged. You can only change the wheel size while the scooter is unlocked, so a locked scooter keeps an honest speedometer.</p>
-    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_TESTLOCK11_R5_4_19.hex" download="AWIVCU_TESTLOCK11_R5_4_19.hex">Download firmware</a>
+    <p class="warn"><b>The wheel size only calibrates the speedometer.</b> While unlocked the value you set here drives what the scooter display reads for speed and distance (the tacho), so the display shows your calibrated speed. While locked the display shows the stock 10.0" so a roadside check reads stock. It never changes the motor controller (ESC), so the real speed is unchanged. You can only change the wheel size while unlocked.</p>
+    <a class="btn fw" id="fw-dl" href="firmware/AWIVCU_TESTLOCK12_R5_4_19.hex" download="AWIVCU_TESTLOCK12_R5_4_19.hex">Download firmware</a>
     <p class="hint">Flash it once with the official Teverun app. It enables the BLE speed lock this page controls (Lock / Unlock).</p>
     <p class="danger"><b>Hardware:</b> This firmware is built for the <b>IVCU hardware version 5.x</b> only. It may also run on the "Ali box", but that is <b>untested and not supported</b> - flashing it there is entirely at your own risk.</p>
   </div>
@@ -112,6 +112,6 @@
     <span class="ver" id="build-ver">build -</span>
   </footer>
 </div>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
