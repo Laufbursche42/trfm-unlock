@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v20';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v21';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -631,7 +631,16 @@ async function tryAutoReconnect() {
 
 let finField;
 function $(id) { return document.getElementById(id); }
-function setStatus(s) { const el = $('status'); if (el) { el.textContent = s; el.dataset.state = s; } }
+function setStatus(s) {
+  const el = $('status'); if (el) { el.textContent = s; el.dataset.state = s; }
+  // Single Connect/Disconnect control: reads "Disconnect" while connected or connecting, "Connect" otherwise.
+  const cb = $('btn-conn');
+  if (cb) {
+    const on = (s === 'connecting' || s === 'linking' || s === 'connected');
+    cb.textContent = on ? 'Disconnect' : 'Connect';
+    cb.dataset.act = on ? 'disconnect' : 'connect';
+  }
+}
 function log(m) {
   const el = $('log'); if (!el) return;
   el.textContent = ('[' + new Date().toLocaleTimeString() + '] ' + m + '\n') + el.textContent;
@@ -700,8 +709,9 @@ window.addEventListener('DOMContentLoaded', () => {
   finField = $('fin');
   log('tr-unlock build ' + BUILD);   // so a tester's log shows which deployed version they run
   { const bv = $('build-ver'); if (bv) bv.textContent = 'build ' + BUILD; }   // visible in the footer too
-  $('btn-connect').addEventListener('click', pickAndConnect);
-  $('btn-disconnect').addEventListener('click', disconnectBle);
+  $('btn-conn').addEventListener('click', () => {
+    if ($('btn-conn').dataset.act === 'disconnect') disconnectBle(); else pickAndConnect();
+  });
   $('btn-toggle').addEventListener('click', () => {
     if ($('btn-toggle').dataset.action === 'unlock') unlock(); else lock();
   });

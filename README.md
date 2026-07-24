@@ -1,5 +1,7 @@
 # Teverun Fighter Mini (eKFV) Unlock
 
+**Open the web app: [laufbursche42.github.io/trfm-unlock](https://laufbursche42.github.io/trfm-unlock/)**
+
 A web app that connects a Teverun Fighter Mini (eKFV) over Web Bluetooth and live-toggles the speed lock, sets the wheel diameter and turns cruise on/off - straight from the browser, with nothing to install: no App Store, no signing, no developer account. It brings the core of the Android Laufbursche Edition (live-toggle plus wheel diameter plus cruise) to a plain web page.
 
 It works on both platforms:
@@ -22,17 +24,19 @@ It works on both platforms:
 Open **https://laufbursche42.github.io/trfm-unlock/** in Bluefy (iOS) or Chrome (Android / desktop).
 
 ### 2. Get the firmware and flash it (one time)
-On the page, tap **Download firmware** to get `AWIVCU_PATCHED_R5_4_19.hex`, then flash it **once with the official Teverun app**, the same way you flash any firmware update. You only do this once per scooter.
-
-**Before you flash - reset the display wheel to 10.** If you ever changed the wheel size in the scooter's own display menu (P-settings) to anything other than 10, set it back to 10 on the scooter first, then flash. This firmware never touches the wheel value stored in the display, so the display keeps showing whatever is set there - and a roadside check reads the wheel size right there. You set your real wheel size in this web app or the [Laufbursche Edition Android app](https://github.com/Laufbursche42/tr-lb-edition) instead (both write it over the VCU into every gear): it applies only while unlocked and is forced back to 10 when you lock, so the display always reads 10.
+On the page, tap **Download firmware (V30)** to get `AWIVCU_APP_R5_4_19_V30.hex`, then flash it **once with the official Teverun app**, the same way you flash any firmware update. You only do this once per scooter. After flashing, the **Firmware** line in this web app must read **V30** - if it shows something else you flashed a cached or old file, so hard-reload this page and download again.
 
 **Do not rename the file.** The Teverun app validates the name when flashing (the third underscore group must be `R5`, whose last character is the major version). A made-up name is rejected.
 
-What the firmware contains - three patches, applied by the tested Laufbursche Edition patcher. It checks every byte it changes against the expected original, so it only patches a genuine R5.4.19 and cannot corrupt the wrong file; the correct 5.4.19 version marker and CRC are kept intact:
+**The wheel size:** set your real wheel size in this web app or the [Laufbursche Edition Android app](https://github.com/Laufbursche42/tr-lb-edition), not in the scooter's own display menu. While unlocked the display shows your calibrated wheel size; while locked it is forced to a stock 10.0" so a roadside check reads stock. The value you set lives on the VCU and is never overwritten, so it comes straight back when you unlock.
 
-- **Live-toggle** - on the eKFV the speed clamp is driven by a flag = *(identity starts with `TDE`)* **OR** *(a bit the eKFV display always sends)*. This patch removes the display half, so from then on the **FIN/identity alone** is the switch: FIN with `TDE` = 22 km/h locked, FIN without it = open (full speed plus kickstart plus cruise). That is what this web app flips live over Bluetooth - no reflashing to lock or unlock.
+What the firmware contains - applied by the tested Laufbursche Edition patcher, which checks every byte it changes against the expected original, so it only patches a genuine R5.4.19 and cannot corrupt the wrong file; the correct 5.4.19 version marker and CRC are kept intact:
+
+- **Direct BLE speed lock (cmd 0x1B)** - the scooter always powers on LOCKED at 22 km/h and you unlock or re-lock it live over Bluetooth from this page. The lock is a direct command, independent of the FIN/identity or the scooter name.
+- **Always boots LOCKED** - the firmware detects power-on from the display cold-boot, so every restart comes up locked at 22 km/h no matter what state it was in before. While the scooter stays on the unlock holds; the next restart locks it again.
+- **10.0" wheel while locked** - the speedometer reads a stock 10.0" whenever the scooter is locked (roadside-stock); your real calibrated value returns instantly on unlock. The stored value is never touched.
+- **Cruise control** - the eKFV firmware kills cruise; this re-enables it while unlocked. Set Off / Auto / Manual here; it engages while riding.
 - **Blinker fix** - on R5.4.19 an extra reset makes the turn signals stay lit instead of blinking; the patch removes it so they blink again.
-- **Wheel-diameter fix** - R5.4.19's settings handler drops the wheel-size value the app sends (and a boot step resets it to 10). The patch restores it and makes it survive a reboot, so the wheel diameter you set actually sticks.
 
 ### 3. Connect and control
 1. **Connect** - tap your scooter in the chooser.
