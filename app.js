@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v18';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v19';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -200,20 +200,15 @@ function buildSettingFrame(n, gearByte, eabsLevel, fStartLevel, rStartLevel, per
   return finalizeFrame(a);
 }
 
-// Write wheel + cruise into EVERY gear we have telemetry for, using each gear's OWN speed/current/assist
-// (from gearCache) so ONLY the wheel + cruise change and every gear keeps its own other settings. The
-// active gear is written last. Gears never seen this session are skipped (not overwritten with wrong data).
+// Wheel + cruise are GLOBAL in the firmware (a single 0x2000029D wheel byte / 0x200002D1 cruise byte),
+// so ONE 0x18 write for the active gear sets them for every gear. Writing all gears was legacy (built
+// when we assumed per-gear wheel); its multi-frame burst could starve the display 0x4c link long enough
+// that the VCU flags the display as gone (0x20000306) and the next display frame trips the power-on
+// boot-lock - a false LOCK on a settings write. One write also never touches another gear's values.
 function writeWheelCruiseAllGears() {
   const cur = S.gear & 0xFF;
-  const gears = new Set(Object.keys(gearCache).map(Number));
-  gears.add(cur);
-  const writeGear = (g) => {
-    const c = gearCache[g] || S;   // for the active gear (always current) S already holds its values
-    enqueue(buildSettingFrame(2, g, c.eabsLevel, c.fStartLevel, c.rStartLevel,
-                              c.assistSpeedLimit, c.fCurrent, c.rCurrent));
-  };
-  for (const g of gears) if (g !== cur) writeGear(g);
-  writeGear(cur);
+  enqueue(buildSettingFrame(2, cur, S.eabsLevel, S.fStartLevel, S.rStartLevel,
+                            S.assistSpeedLimit, S.fCurrent, S.rCurrent));
 }
 
 // ─────────────────────────── telemetry parse (subset of FrameParser.java) ───────────────────────────
