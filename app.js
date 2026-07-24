@@ -8,7 +8,7 @@
 
 'use strict';
 
-const BUILD = 'v17';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v18';   // logged on load so a tester's log reveals which deployed build is running
 
 // ─────────────────────────── BLE transport constants ───────────────────────────
 
@@ -642,16 +642,18 @@ function log(m) {
   el.textContent = ('[' + new Date().toLocaleTimeString() + '] ' + m + '\n') + el.textContent;
 }
 // The single lock/unlock control reflects the current state: "Unlock" when the scooter is locked,
-// "Lock" when it is open. Driven by the real IVCU state streamed in 55 71 t[2] (TESTLOCK firmware);
-// falls back to the FIN prefix only on old firmware that does not stream the lock byte.
+// "Lock" when it is open. The state is driven ONLY by the real IVCU value streamed in 55 71 t[2]
+// (T.lock). It is NEVER inferred from the FIN / BLE name - the FIN does not reflect the real lock and
+// lying about it is worse than admitting we do not know yet. Until a real 55 71 sets T.lock the state
+// is shown as unknown ("reading...") and the button is disabled.
 function refreshToggle() {
   const btn = $('btn-toggle');
   if (!btn) return;
-  const fin = ((finField && finField.value) || deviceName || '').trim();
-  const locked = (T.lock != null) ? (T.lock === 'locked') : fin.startsWith('TDE');
-  btn.textContent = locked ? 'Unlock' : 'Lock';
+  const known = (T.lock === 'locked' || T.lock === 'unlocked');
+  const locked = (T.lock === 'locked');
+  btn.textContent = !known ? 'reading...' : (locked ? 'Unlock' : 'Lock');
   btn.dataset.action = locked ? 'unlock' : 'lock';
-  btn.disabled = !linkConfirmed;   // only actionable once a real telemetry frame confirmed the link
+  btn.disabled = !linkConfirmed || !known;   // actionable only once a real 55 71 gave the state
 }
 function renderLive() {
   $('t-wheel').textContent = S.received71 ? S.wheel.toFixed(1) : '-';
@@ -665,11 +667,8 @@ function renderLive() {
 }
 function resetTiles() {                                 // no telemetry -> show "-"
   // Drop cached telemetry so a reconnect can NEVER show a pre-reboot lock state. Without this, T.lock
-  // keeps its last optimistic value (e.g. 'unlocked' from before a power-cycle) and refreshToggle shows
-  // that stale value until a fresh 55 71 arrives - which after a scooter reboot may lag or not resume on
-  // the reconnected link, so the page lies "unlocked" while the firmware is really LOCKED. Cleared to
-  // null, refreshToggle falls back to the FIN (TDE -> locked), the safe honest default, and the next
-  // real 55 71 corrects it.
+  // keeps its last value and refreshToggle shows it until a fresh 55 71 arrives. Cleared to null,
+  // refreshToggle shows "reading..." (unknown) until the next real 55 71 gives the true state.
   T.lock = null;
   S.received71 = false;
   $('t-wheel').textContent = '-';
