@@ -664,6 +664,14 @@ function renderLive() {
   refreshToggle();
 }
 function resetTiles() {                                 // no telemetry -> show "-"
+  // Drop cached telemetry so a reconnect can NEVER show a pre-reboot lock state. Without this, T.lock
+  // keeps its last optimistic value (e.g. 'unlocked' from before a power-cycle) and refreshToggle shows
+  // that stale value until a fresh 55 71 arrives - which after a scooter reboot may lag or not resume on
+  // the reconnected link, so the page lies "unlocked" while the firmware is really LOCKED. Cleared to
+  // null, refreshToggle falls back to the FIN (TDE -> locked), the safe honest default, and the next
+  // real 55 71 corrects it.
+  T.lock = null;
+  S.received71 = false;
   $('t-wheel').textContent = '-';
   $('t-cruise').textContent = '-';
   $('t-fin').textContent = deviceName || '-';
