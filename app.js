@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v40';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v41';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -859,6 +859,12 @@ function renderDlgFile() {
     : '';
 }
 
+// The confirm button stays dead until the rider says they read the disclaimer.
+function syncFlashConsent() {
+  const consent = $('dlg-consent'), ok = $('btn-warn-ok');
+  if (ok) ok.disabled = !(consent && consent.checked);
+}
+
 function askFlash() {
   if (!connected || !fwCheck || flashOwnsLink() || flashArmed) return;
   const dlg = $('flash-warn');
@@ -868,6 +874,10 @@ function askFlash() {
   flashChk = fwCheck;
   flashArmed = true;
   renderDlgFile();
+  // Asked fresh every time: the tick from the previous dialog never carries over.
+  const consent = $('dlg-consent');
+  if (consent) consent.checked = false;
+  syncFlashConsent();
   refreshFlashButtons();
   // Stopped here, not at flash start: a connect-code frame enqueued while the dialog is open could
   // still be in flight when the first OTA frame goes out. Restarted from the dialog's close event.
@@ -1396,7 +1406,12 @@ window.addEventListener('DOMContentLoaded', () => {
     refreshFlashButtons();
     if (!flashOwnsLink() && connected && notifyReady) startKeepAlive();
   });
+  $('dlg-consent').addEventListener('change', syncFlashConsent);
+  // Opens on top of the confirmation, which stays open behind it: reading the terms is not an answer.
+  $('dlg-disclaimer').addEventListener('click', e => { e.preventDefault(); openDisclaimer(); });
   $('btn-warn-ok').addEventListener('click', () => {
+    const consent = $('dlg-consent');
+    if (!consent || !consent.checked) return;
     startFlash();                    // fences the link before the close event can restart the keep-alive
     const d = $('flash-warn'); if (d) d.close();
   });

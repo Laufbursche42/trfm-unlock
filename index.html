@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=40">
+<link rel="stylesheet" href="styles.css?v=41">
 </head>
 <body>
 <div class="wrap">
@@ -74,7 +74,9 @@
       <button id="btn-pick" data-t="btnPick" disabled></button>
       <button class="primary" id="btn-flash" disabled></button>
     </div>
-    <input type="file" id="fw-file" accept=".hex,text/plain" hidden>
+    <!-- No accept filter on purpose: iOS resolves it to its own file types, does not know
+         .hex and greys the file out. What counts is the check in onFwFile. -->
+    <input type="file" id="fw-file" hidden>
     <div id="fw-check"></div>
 
     <div id="fw-progress" hidden>
@@ -125,10 +127,15 @@
     <h3 data-t="dlgTitle"></h3>
     <p class="hint" id="dlg-file"></p>
     <ul id="dlg-list"></ul>
+    <label class="consent-row" for="dlg-consent">
+      <input type="checkbox" id="dlg-consent">
+      <span data-t="dlgConsent"></span>
+    </label>
+    <p class="hint"><a href="#" id="dlg-disclaimer" data-t="footDisclaimer"></a></p>
   </div>
   <div class="dlg-foot">
     <button id="btn-warn-cancel" data-t="dlgNo"></button>
-    <button class="primary" id="btn-warn-ok" data-t="dlgYes"></button>
+    <button class="primary" id="btn-warn-ok" disabled data-t="dlgYes"></button>
   </div>
 </dialog>
 
@@ -143,8 +150,8 @@
   </div>
 </dialog>
 
-<script src="ota.js?v=40"></script>
-<script src="i18n.js?v=40"></script>
-<script src="app.js?v=40"></script>
+<script src="ota.js?v=41"></script>
+<script src="i18n.js?v=41"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>

@@ -65,10 +65,11 @@ It accepts the stock **R5.4.19** only, judged on the content of the image rather
    - `this is not controller app firmware: the first packet targets 0x..., below the app base`
 
    Every one of these checks runs before a single byte goes out, so a refused file leaves the scooter completely untouched.
-4. Tap **Flash**. From here on: scooter on, page open and in the foreground, phone next to the scooter.
-5. Wait about seven minutes. The bar fills, the packet counter climbs and the log records each step.
-6. The flash is through when the log says `CRC correct, refresh complete` followed by `Upgrade over`.
-7. Switch the scooter off and on again, connect once more and read the **Laufbursche Version** line. It must show the build you just flashed. **Firmware version** stays at `R5.4.19`, because a Laufbursche firmware is that same version with patches applied.
+4. Tap **Flash**. A confirmation opens with what is about to happen. Tick the box saying you read the disclaimer: only then does **I understand, flash** become pressable. The text itself opens out of that same confirmation, which stays open behind it.
+5. From here on: scooter on, page open and in the foreground, phone next to the scooter.
+6. Wait about seven minutes. The bar fills, the packet counter climbs and the log records each step.
+7. The flash is through when the log says `CRC correct, refresh complete` followed by `Upgrade over`.
+8. Switch the scooter off and on again, connect once more and read the **Laufbursche Version** line. It must show the build you just flashed. **Firmware version** stays at `R5.4.19`, because a Laufbursche firmware is that same version with patches applied.
 
 ### What the progress and the log tell you
 

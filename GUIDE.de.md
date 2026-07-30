@@ -65,10 +65,11 @@ Angenommen wird ausschließlich die Serien-**R5.4.19**, geprüft am Inhalt des A
    - `this is not controller app firmware: the first packet targets 0x..., below the app base`
 
    Jede dieser Prüfungen läuft, bevor ein einziges Byte hinausgeht. Eine abgelehnte Datei lässt den Scooter also völlig unberührt.
-4. Tippe auf **Flash**. Ab hier gilt: Scooter an, Seite offen und im Vordergrund, Handy neben dem Scooter.
-5. Warte etwa sieben Minuten. Der Balken füllt sich, der Paketzähler steigt und das Log hält jeden Schritt fest.
-6. Der Flash ist durch, wenn im Log `CRC correct, refresh complete` steht, gefolgt von `Upgrade over`.
-7. Schalte den Scooter aus und wieder ein, verbinde erneut und lies die Zeile **Laufbursche Version**. Dort muss der Build stehen, den du geflasht hast. **Firmware version** bleibt auf `R5.4.19`, denn eine Laufbursche-Firmware ist genau diese Version mit angewendeten Patches.
+4. Tippe auf **Flash**. Es öffnet sich eine Nachfrage mit dem, was gleich passiert. Setze darin das Häkchen, dass du den Haftungsausschluss gelesen hast, erst danach lässt sich **Verstanden, flashen** drücken. Den Text selbst öffnest du aus derselben Nachfrage heraus, ohne sie zu schließen.
+5. Ab hier gilt: Scooter an, Seite offen und im Vordergrund, Handy neben dem Scooter.
+6. Warte etwa sieben Minuten. Der Balken füllt sich, der Paketzähler steigt und das Log hält jeden Schritt fest.
+7. Der Flash ist durch, wenn im Log `CRC correct, refresh complete` steht, gefolgt von `Upgrade over`.
+8. Schalte den Scooter aus und wieder ein, verbinde erneut und lies die Zeile **Laufbursche Version**. Dort muss der Build stehen, den du geflasht hast. **Firmware version** bleibt auf `R5.4.19`, denn eine Laufbursche-Firmware ist genau diese Version mit angewendeten Patches.
 
 ### Was Fortschritt und Log dir sagen
 

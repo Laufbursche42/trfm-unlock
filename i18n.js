@@ -128,6 +128,7 @@ window.I18N = {
       "<b>Ein abgebrochener Flash hinterlässt einen Scooter, der nicht fährt</b>, bis ein Flash vollständig durchläuft. Ein neuer Flash holt ihn zurück.",
       "<b>Haftung:</b> Für Schäden durch oder mit dieser Firmware übernehmen wir keine Haftung, soweit das Gesetz es zulässt. Die Nutzung erfolgt auf eigenes Risiko."
     ],
+    dlgConsent: "Ich habe den Haftungsausschluss gelesen und flashe auf eigene Gefahr.",
     dlgNo: "Abbrechen",
     dlgYes: "Verstanden, flashen"
   },
@@ -248,6 +249,7 @@ window.I18N = {
       "<b>An interrupted flash leaves a scooter that will not run</b> until a flash completes. Flashing again recovers it.",
       "<b>Liability:</b> for damage caused by or with this firmware we accept no liability, as far as the law allows. Use at your own risk."
     ],
+    dlgConsent: "I have read the disclaimer and I flash at my own risk.",
     dlgNo: "Cancel",
     dlgYes: "I understand, flash"
   }
