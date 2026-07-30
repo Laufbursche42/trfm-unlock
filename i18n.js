@@ -44,6 +44,7 @@ window.I18N = {
     tipCruiseLocked: "Entsperre den Scooter, um den Tempomat zu ändern",
 
     s4Title: "Firmware flashen",
+    iosHint: "<b>Auf dem iPhone:</b> lässt sich deine Datei in der Auswahl nicht antippen, benenn sie in <b>.txt</b> um. Am Inhalt ändert das nichts und die Seite liest ihn genauso, denn geprüft wird das Abbild selbst, nie der Dateiname.",
     flashHint: "Wähle eine Firmware-Datei, prüfe die Meldung dazu und flashe dann. Der Scooter muss den ganzen Lauf über an und in Reichweite bleiben, etwa sieben Minuten.",
     btnPick: "Datei wählen",
     btnFlash: "Flashen",
@@ -169,6 +170,7 @@ window.I18N = {
     tipCruiseLocked: "Unlock the scooter to change cruise control",
 
     s4Title: "Flash firmware",
+    iosHint: "<b>On an iPhone:</b> if your file cannot be tapped in the picker, rename it to <b>.txt</b>. That changes nothing about the content and the page reads it just the same, because what is checked is the image itself, never the file name.",
     flashHint: "Pick a firmware file, read what the page says about it and then flash. The scooter must stay on and in range for the whole run, about seven minutes.",
     btnPick: "Choose file",
     btnFlash: "Flash",
