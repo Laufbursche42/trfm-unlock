@@ -40,12 +40,6 @@ The manufacturer's firmware is the manufacturer's copyrighted work, so it is not
 
 By flashing a firmware through this page and by using it, you accept these terms.
 
-## Technical
-
-- Plain static page: `index.html`, `app.js`, `ota.js`, `styles.css`. No build step, no dependencies, strict Content-Security-Policy.
-- The Bluetooth core is ported from the [Laufbursche Edition Android app](https://github.com/Laufbursche42/tr-lb-edition). The flasher follows the same OTA protocol the official app uses.
-- Hosting: GitHub Pages, which supplies the HTTPS that Web Bluetooth requires.
-
 ## License
 
 PolyForm Noncommercial 1.0.0 with two additional terms, in full in [LICENSE.md](LICENSE.md).
