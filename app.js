@@ -101,7 +101,7 @@ function base(cmdId) {
   a[1] = cmdId & 0xFF;
   return a;
 }
-function sendConnectCode(e) {          // handshake / keep-alive: AA 01 10 <e> FF..FF CRC
+function connectCode(e) {          // handshake / keep-alive: AA 01 10 <e> FF..FF CRC
   const a = base(1);
   a[2] = 0x10;
   a[3] = e & 0xFF;
@@ -527,7 +527,7 @@ function startKeepAlive() {
   stopKeepAlive();
   const tick = () => {
     if (!notifyReady) return;
-    enqueue(sendConnectCode(0));
+    enqueue(connectCode(0));
     keepAliveTimer = setTimeout(tick, CONNECT_CODE_INTERVAL_MS);
   };
   tick();
