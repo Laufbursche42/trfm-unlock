@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v43';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v44';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1132,6 +1132,7 @@ function applyLang() {
   { const el = $('wheel-in'); if (el) el.placeholder = t('phWheel'); }
   // href is only the fallback for opening in a new tab; the click opens the viewer.
   { const el = $('link-guide'); if (el) el.href = docFile('GUIDE'); }
+  { const el = $('link-readme'); if (el) el.href = docFile('README'); }
   { const el = $('link-privacy'); if (el) el.href = docFile('PRIVACY'); }
   { const el = $('link-license'); if (el) el.href = docFile('LICENSE'); }
   { const el = $('link-trademarks'); if (el) el.href = docFile('TRADEMARKS'); }
@@ -1165,6 +1166,7 @@ const DOC_TITLES = {
   'PRIVACY.de.md': 'footPrivacy', 'PRIVACY.md': 'footPrivacy',
   'LICENSE.de.md': 'footLicense', 'LICENSE.md': 'footLicense',
   'TRADEMARKS.de.md': 'footTrademarks', 'TRADEMARKS.md': 'footTrademarks',
+  'README.md': 'footReadme',
 };
 
 const DISCLAIMER_HREF = 'README.md#disclaimer';
@@ -1294,6 +1296,7 @@ const docCache = {};
 // LICENSE.md is the file GitHub reads and the binding wording of the licence.
 const docFile = name => {
   if (name === 'GUIDE') return `GUIDE.${lang}.md`;
+  if (name === 'README') return 'README.md';   // only exists in English
   return lang === 'de' ? `${name}.de.md` : `${name}.md`;
 };
 
@@ -1323,7 +1326,9 @@ function openDocFile(file, anchor, titleKey) {
 
   if (docCache[file]) { show(docCache[file]); return; }
   body.innerHTML = '<p>' + escHtml(t('docLoading')) + '</p>';   // scan-ok: escaped
-  fetch(file)
+  // Same marker the script tags carry: without it a document stays in the browser cache
+  // across builds and a reader keeps seeing the text from the first time they opened it.
+  fetch(file + '?v=' + BUILD)
     .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
     .then(txt => { docCache[file] = mdToHtml(txt); show(docCache[file]); })
     .catch(e => {

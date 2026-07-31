@@ -100,6 +100,7 @@ window.I18N = {
 
     footGuide: "Anleitung",
     footSource: "Quellcode",
+    footReadme: "Readme",
     footDisclaimer: "Haftungsausschluss",
     footLicense: "Lizenz",
     footPrivacy: "Datenschutz",
@@ -222,6 +223,7 @@ window.I18N = {
 
     footGuide: "Guide",
     footSource: "Source",
+    footReadme: "Readme",
     footDisclaimer: "Disclaimer",
     footLicense: "License",
     footPrivacy: "Privacy",
