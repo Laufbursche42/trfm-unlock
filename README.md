@@ -1,8 +1,10 @@
 # Laufbursche Fighter Mini (eKFV) unlock
 
-**Open the web app: [laufbursche42.github.io/trfm-unlock](https://laufbursche42.github.io/trfm-unlock/)**
-
 A static web page that talks to a Teverun Fighter Mini (eKFV) over Web Bluetooth. It toggles the speed lock live, sets wheel diameter and cruise and flashes firmware to the controller, straight from the browser. Nothing to install: no app store, no signing, no developer account. It runs in **Bluefy** on iOS and in **Chrome** on Android or desktop.
+
+> **This is a feasibility study.** It exists to show what a Teverun scooter's Bluetooth protocol makes possible, not to be a finished product. Error-free operation is not promised and there is no warranty of any kind. Whatever you do with it, you do at your own risk. Read the [Disclaimer](#disclaimer) before you connect a scooter.
+
+**Open the web app: [laufbursche42.github.io/trfm-unlock](https://laufbursche42.github.io/trfm-unlock/)**
 
 **Guide: [Deutsch](GUIDE.de.md) | [English](GUIDE.en.md)** covers everything step by step, from the first connect to a flashed firmware.
 
@@ -26,6 +28,7 @@ The manufacturer's firmware is the manufacturer's copyrighted work, so it is not
 
 **Please read this in full before you flash anything or unlock a scooter.**
 
+- **This is a feasibility study**, not a finished product. It shows what the scooter's Bluetooth protocol makes possible. Nothing here promises that it works with your scooter, your phone or your browser. Nothing promises it still works after the next controller firmware or browser release.
 - **This page provides no firmware.** You choose the file, so nobody here can vouch for what you flash, where it came from or what it does to your scooter.
 - **A patched firmware ends the road approval.** A scooter that no longer holds the eKFV limit is not a road-legal eKFV any more under the eKFV regulation and the StVZO. The operating permit (Betriebserlaubnis) is void. The insurance cover goes with it.
 - **Ride it on private property only**, on closed grounds that are not public traffic space. Riding a derestricted scooter in public traffic is a criminal offence in Germany: no operating permit, no insurance. The liability is entirely yours.
