@@ -46,8 +46,14 @@ By flashing a firmware through this page and by using it, you accept these terms
 - The Bluetooth core is ported from the [Laufbursche Edition Android app](https://github.com/Laufbursche42/tr-lb-edition). The flasher follows the same OTA protocol the official app uses.
 - Hosting: GitHub Pages, which supplies the HTTPS that Web Bluetooth requires.
 
-## License, privacy, trademarks
+## License
 
-- **License:** PolyForm Noncommercial 1.0.0 with two additional terms, in full in [LICENSE.md](LICENSE.md).
-- **Privacy:** [PRIVACY.md](PRIVACY.md). Nothing leaves your device but the page load itself.
-- **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md). Independent project, not affiliated with Teverun.
+PolyForm Noncommercial 1.0.0 with two additional terms, in full in [LICENSE.md](LICENSE.md).
+
+## Privacy
+
+Nothing leaves your device but the page load itself. The details are in [PRIVACY.md](PRIVACY.md).
+
+## Trademarks
+
+An independent project, not affiliated with Teverun. "Teverun" and other product names are trademarks of their respective owners and are used here only to say which scooters this page works with. See [TRADEMARKS.md](TRADEMARKS.md).
