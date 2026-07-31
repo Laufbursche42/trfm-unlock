@@ -1,7 +1,7 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Firmware update over BLE, the same protocol the official app uses.
+// Firmware update over BLE, the protocol the VCU bootloader speaks.
 //
 // This is a port of the flasher in tools/lbtool.py, which is itself a port of
 // the Android app's OtaEngine. Timer for timer, retry for retry: the controller
