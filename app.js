@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v44';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v45';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1174,9 +1174,12 @@ const DISCLAIMER_HREF = 'README.md#disclaimer';
 const escHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // GitHub's heading slugs, so an anchor written inside a document keeps working here.
+// One space becomes one dash, runs are NOT collapsed: a code host drops the punctuation
+// first, so "Disclaimer & Trademarks" ends up with two dashes and an anchor written for
+// that host has to find the same id here.
 const slug = s => s.toLowerCase().trim()
   .replace(/[^\w\sÀ-ɏ-]/g, '')
-  .replace(/\s+/g, '-');
+  .replace(/ /g, '-');
 
 // Only the markdown these documents use: headings, lists with one level of
 // nesting, tables, fenced code, quotes, rules, bold, inline code and links.
@@ -1190,6 +1193,9 @@ function mdToHtml(src) {
       // The disclaimer link reads well on a code host and opens our own terms here.
       if (href === DISCLAIMER_HREF) return `<a href="${href}" data-disclaimer>${text}</a>`;
       if (DOC_TITLES[href]) return `<a href="${href}" data-docfile="${href}">${text}</a>`;
+      // An anchor belongs to the document being read, so it scrolls instead of opening a
+      // tab on an address that answers to nothing.
+      if (href.startsWith('#')) return `<a href="${href}" data-anchor="${href.slice(1)}">${text}</a>`;
       return `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
     });
 
@@ -1353,6 +1359,14 @@ function wireDocViewer() {
   // Delegated: the guide link inside a translated hint is rebuilt on every switch.
   document.addEventListener('click', e => {
     if (!e.target.closest) return;
+    const jump = e.target.closest('[data-anchor]');
+    if (jump) {
+      e.preventDefault();
+      const body = $('doc-body');
+      const target = body && body.querySelector('#' + CSS.escape(jump.getAttribute('data-anchor')));
+      if (target) body.scrollTop = target.offsetTop - body.offsetTop;
+      return;
+    }
     const a = e.target.closest('[data-doc], [data-docfile], [data-disclaimer]');
     if (!a) return;
     e.preventDefault();
@@ -1424,6 +1438,8 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshSettingsInputs();   // start disabled; enabled + prefilled once a scooter reports its config
   refreshFlashButtons();     // start disabled; both need a link and Flash needs a checked file
   if (!navigator.bluetooth) log('Web Bluetooth not available. On iOS use the Bluefy browser.');
+  // Someone arriving at .../#disclaimer meant the terms, an address written in the documents.
+  if (location.hash.replace('#', '').toLowerCase().startsWith('disclaimer')) openDisclaimer();
   parseDeepLink();                              // read ?do=lock|unlock from a home-screen shortcut
   if (pendingDeepAction) tryAutoReconnect();    // only a shortcut auto-reconnects; a normal open uses the chooser
 });
