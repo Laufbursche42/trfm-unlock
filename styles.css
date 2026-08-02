@@ -28,6 +28,10 @@
   --backdrop: rgba(10,13,24,.45); --shadow: rgba(10,13,24,.18);
 }
 * { box-sizing: border-box; }
+/* The hidden attribute is only display:none in the browser's own sheet, so ANY author rule that
+   sets display beats it. .card sets display:flex, which left a card marked hidden fully visible.
+   Central, so no element has to remember to hide itself a second way. */
+[hidden] { display: none !important; }
 
 /* Slim scrollbars in the colours of the page. Firefox and Chromium both honour the
    standard properties, so they end up looking the same. */
