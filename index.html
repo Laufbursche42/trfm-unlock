@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <!-- No frame-ancestors here: a browser ignores it in a meta element, it only works as an
-     HTTP header, and GitHub Pages sends no custom headers. It would only log a warning. -->
+     HTTP header. GitHub Pages sends no custom headers, so it would only log a warning. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title data-t="pageTitle">Laufbursche Fighter Mini (eKFV) entsperren</title>
+<title data-t="pageTitle">Laufbursche Fighter Mini (eKFV) Tool</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=61">
+<link rel="stylesheet" href="styles.css?v=67">
 </head>
 <body>
 <div class="wrap">
@@ -72,6 +72,31 @@
   </div>
 
   <div class="card">
+    <h2 data-t="errTitle"></h2>
+    <p class="hint" data-t="errHint"></p>
+    <div class="btns">
+      <button class="primary span2" id="btn-err" data-t="btnErr" disabled></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-t="batTitle"></h2>
+    <p class="hint" data-t="batHint"></p>
+    <div class="btns">
+      <button class="primary span2" id="btn-bat" data-t="btnBat" disabled></button>
+    </div>
+  </div>
+
+  <!-- Hidden until the page is opened with ?test=led. The script is what unhides it. -->
+  <div class="card" id="led-card" hidden>
+    <h2 data-t="ledTitle"></h2>
+    <p class="hint" data-t="ledHint"></p>
+    <div class="row">
+      <button class="primary span2" id="btn-led" data-t="btnLed" disabled></button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2 data-t="s4Title"></h2>
     <p class="hint" data-t="flashHint"></p>
     <p class="hint" data-t="iosHint"></p>
@@ -108,15 +133,6 @@
     <div class="linkrow"><span class="lbl" data-t="btnLock"></span><pre class="copy">https://laufbursche42.github.io/trfm-unlock/?do=lock</pre></div>
 
     <p class="hint" data-t="shortcutNote"></p>
-  </div>
-
-  <!-- Hidden until the page is opened with ?test=led, and the script is what unhides it. -->
-  <div class="card" id="led-card" hidden>
-    <h2 data-t="ledTitle"></h2>
-    <p class="hint" data-t="ledHint"></p>
-    <div class="row">
-      <button class="primary span2" id="btn-led" data-t="btnLed" disabled></button>
-    </div>
   </div>
 
   <div class="card">
@@ -213,6 +229,41 @@
   </div>
 </dialog>
 
+<dialog id="err" aria-labelledby="err-title">
+  <div class="doc-head">
+    <h3 id="err-title" data-t="errTitle"></h3>
+    <button type="button" id="err-close">&times;</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint" data-t="errHint"></p>
+    <div id="err-list"></div>
+  </div>
+  <div class="dlg-foot">
+    <button class="primary" id="err-close-2" data-t="docClose"></button>
+  </div>
+</dialog>
+
+<dialog id="bat" aria-labelledby="bat-title">
+  <div class="doc-head">
+    <h3 id="bat-title" data-t="batTitle"></h3>
+    <button type="button" id="bat-close">&times;</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint" data-t="batHint"></p>
+    <h4 class="dlg-sec" data-t="batHealthTitle"></h4>
+    <div id="bat-health"></div>
+    <hr class="sep">
+    <h4 class="dlg-sec" data-t="batPackTitle"></h4>
+    <div id="bat-pack"></div>
+    <hr class="sep">
+    <h4 class="dlg-sec" data-t="batCellsTitle"></h4>
+    <div class="grid cells" id="bat-cells"></div>
+  </div>
+  <div class="dlg-foot">
+    <button class="primary" id="bat-close-2" data-t="docClose"></button>
+  </div>
+</dialog>
+
 <dialog id="doc" aria-labelledby="doc-title">
   <div class="doc-head">
     <h3 id="doc-title"></h3>
@@ -224,9 +275,9 @@
   </div>
 </dialog>
 
-<script src="ota.js?v=61"></script>
-<script src="i18n.js?v=61"></script>
-<script src="app.js?v=61"></script>
-<script src="led.js?v=61"></script>
+<script src="ota.js?v=67"></script>
+<script src="i18n.js?v=67"></script>
+<script src="app.js?v=67"></script>
+<script src="led.js?v=67"></script>
 </body>
 </html>

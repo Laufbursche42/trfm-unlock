@@ -64,11 +64,11 @@ function ledEffectNames() {
 }
 
 // The whole feature hides behind a URL switch while it is being tried out, so an ordinary visitor
-// never sees it. Query and hash are both read, the same way the do= shortcut is, and a stray & in
+// never sees it. Query and hash are both read the same way the do= shortcut is. A stray & in
 // place of the ? is tolerated because that is an easy thing to mistype.
 function ledTestEnabled() {
   const raw = (location.search + ' ' + location.hash).toLowerCase();
-  return /[?&#]test=led/.test(raw) || /(^|[?&#])test=led/.test(raw.replace(/^\s+/, ''));
+  return /[?&#]test=led/.test(raw) || /(^|[?&#])test=led/.test(raw.trim());
 }
 
 const LS_LED_WARN_UNTIL = 'tru_led_warn_until';   // epoch ms; the warning stays suppressed until then
@@ -187,7 +187,7 @@ function ledRefreshUi() {
   if (sw) sw.checked = LED.on;
 
   // The controls stay usable while the strips are off: a rider sets the look first and then switches
-  // on, and the controller drops setting frames while the off-latch is set anyway. What is set here
+  // on. The controller drops setting frames while the off-latch is set anyway. What is set here
   // is held and goes out the moment the strips are switched on.
   const br = $('led-bright'), brv = $('led-bright-val');
   if (br) { br.value = String(LED.brightness); ledPaintSlider(br); }

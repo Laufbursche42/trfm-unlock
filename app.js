@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v61';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v67';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -206,7 +206,20 @@ function writeWheelCruiseAllGears() {
 
 // --------------------------- telemetry parse (subset of FrameParser.java) ---------------------------
 
-const T = { speed: 0, soc: 0, gear: 0, speedRaw: 0, volt: 0, frameNum: '', fin: '', lock: null };
+const ERROR_COUNT = 17;     // 55 54 t[2..18], one severity byte per error type
+const CELL_SLOTS = 24;      // 55 51 / 55 55 / 55 56 carry eight cells each
+
+const T = {
+  speed: 0, soc: 0, gear: 0, speedRaw: 0, volt: 0, frameNum: '', fin: '', lock: null,
+  // Battery detail from 55 52 / 55 53 and the BMS severity array from 55 54. The have* flags say
+  // whether that frame has been seen at all, so a view can show the page placeholder instead of a
+  // zero the scooter never sent.
+  have52: false, have53: false, current: 0, soh: 0, maxCellTemp: 0, minCellTemp: 0,
+  capacity: 0, chargeCounter: 0, cellCount: 0, maxCellV: 0, minCellV: 0, balance: 0,
+  cellMv: null, errors: null,
+  // Controller status bytes 55 72 t[10] / t[11]: the fault bits behind the error report.
+  ecu1: null, ecu2: null,
+};
 
 function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
 
@@ -283,6 +296,8 @@ function dispatch(t) {
       maybeRunDeepAction();      // a shortcut's ?do=lock waits for this first 55 71
       break;
     case 0x72: {
+      T.ecu1 = t[10] & 0xFF;         // rear ECU status bytes, the fault bits of the error report
+      T.ecu2 = t[11] & 0xFF;
       T.speedRaw = u16(t, 15);
       let v = 0;
       if (T.speedRaw > 0) v = 287.0 * S.wheel / T.speedRaw;
@@ -291,7 +306,37 @@ function dispatch(t) {
       T.speed = v;
       break;
     }
-    case 0x52: T.volt = u16(t, 2) * 0.1; T.soc = t[8] & 0xFF; break;
+    case 0x51: parseCells(t, 0); break;      // cells 1-8
+    case 0x55: parseCells(t, 8); break;      // cells 9-16
+    case 0x56: parseCells(t, 16); break;     // cells 17-24
+    case 0x52:
+      T.volt = u16(t, 2) * 0.1;
+      T.current = u16(t, 6) * 0.1 - 1000;    // below zero the pack is taking charge back in
+      T.soc = t[8] & 0xFF;
+      T.soh = t[9] & 0xFF;
+      T.maxCellTemp = (t[17] & 0xFF) - 40;   // both temperatures carry a 40 degree offset
+      T.minCellTemp = (t[18] & 0xFF) - 40;
+      T.have52 = true;
+      break;
+    case 0x53:
+      T.balance = t[7] & 0xFF;               // one balancing bit per cell, bit 0 = cell 1
+      // A T2 pack carries the rated capacity in t[10] instead of t[8]. The name is the only source
+      // for that. A device granted before the picker was narrowed can still be a T2.
+      T.capacity = deviceName.startsWith('T2') ? u16(t, 10) : u16(t, 8);
+      T.chargeCounter = u16(t, 12);
+      T.cellCount = t[14] & 0xFF;
+      T.maxCellV = u16(t, 15);
+      T.minCellV = u16(t, 17);
+      T.have53 = true;
+      break;
+    case 0x54: {
+      // Severity per error type: the index is the type, the byte its level. Kept raw here, the
+      // thresholds that decide what counts as active live in collectErrors.
+      const errs = new Array(ERROR_COUNT);
+      for (let i = 0; i < ERROR_COUNT; i++) errs[i] = t[i + 2] & 0xFF;
+      T.errors = errs;
+      break;
+    }
     case 0x42: T.frameNum = ascii(t, 2, 18); updateFin(); break;
     case 0x43:
       // 55 43 version frame: t[2..4] = base VCU sw version (5.4.19); t[6] = our internal build number
@@ -303,6 +348,13 @@ function dispatch(t) {
     default: break;
   }
   renderLive();
+}
+
+// 55 51 / 55 55 / 55 56 each carry eight cell voltages as big-endian millivolts, no scaling.
+// base is the index of the first cell in the frame.
+function parseCells(t, base) {
+  if (!T.cellMv) T.cellMv = new Array(CELL_SLOTS).fill(0);
+  for (let k = 0; k < 8 && base + k < CELL_SLOTS; k++) T.cellMv[base + k] = u16(t, 2 + 2 * k);
 }
 
 function ascii(t, from, toInc) {
@@ -725,7 +777,8 @@ let flashChk = null;
 let flashArmed = false; // the confirmation dialog is open and waiting for an answer
 
 // Controls that must not fire while a flash runs: an extra frame or a disconnect breaks the stream.
-const FLASH_LOCK_IDS = ['btn-conn', 'btn-toggle', 'wheel-in', 'btn-set-wheel', 'cruise-in', 'btn-set-cruise'];
+const FLASH_LOCK_IDS = ['btn-conn', 'btn-toggle', 'wheel-in', 'btn-set-wheel', 'cruise-in', 'btn-set-cruise',
+                        'btn-err', 'btn-bat'];
 
 // Blob.text() is missing on older WebKit, where Bluefy still has to work.
 function readFileText(file) {
@@ -812,7 +865,7 @@ function refreshFlashButtons() {
 
 function setControlsForFlash(flashing) {
   FLASH_LOCK_IDS.forEach(id => { const el = $(id); if (el) el.disabled = flashing; });
-  if (!flashing) { refreshToggle(); refreshSettingsInputs(); }
+  if (!flashing) { refreshToggle(); refreshSettingsInputs(); refreshInfoButtons(); }
 }
 
 // Both the progress line and the result line are kept as values, so a language switch
@@ -1018,6 +1071,7 @@ function setStatus(s) {
     cb.dataset.act = on ? 'disconnect' : 'connect';
   }
   refreshFlashButtons();   // both flasher buttons need a link and every state change decides that
+  refreshInfoButtons();    // the two info views need one as well
 }
 function log(m) {
   const el = $('log'); if (!el) return;
@@ -1047,12 +1101,16 @@ function renderLive() {
   $('t-fwver').textContent = (T.fwBuild != null && T.fwBuild > 0) ? ('V' + T.fwBuild) : '-';
   refreshSettingsInputs();
   refreshToggle();
+  refreshInfoButtons();
 }
 function resetTiles() {                                 // no telemetry -> show "-"
   // Drop cached telemetry so a reconnect can NEVER show a pre-reboot lock state. Without this, T.lock
   // keeps its last value and refreshToggle shows it until a fresh 55 71 arrives. Cleared to null,
   // refreshToggle shows "reading..." (unknown) until the next real 55 71 gives the true state.
   T.lock = null;
+  // Battery and fault data belongs to the link that streamed it: after a drop the two info views
+  // show the placeholder again until the new link delivers its own frames.
+  T.have52 = false; T.have53 = false; T.cellMv = null; T.errors = null; T.ecu1 = null; T.ecu2 = null;
   S.received71 = false;
   $('t-wheel').textContent = '-';
   $('t-cruise').textContent = '-';
@@ -1080,6 +1138,227 @@ function refreshSettingsInputs() {
     settingsPrefilled = false;
   }
 }
+
+// --------------------------- error reports + battery info ---------------------------
+//
+// Two read-only views of what the scooter streams by itself. Nothing is sent for either of them:
+// 55 54 carries the BMS severity array, 55 72 t[10]/t[11] the controller fault bits, 55 52 / 55 53
+// the pack summary and 55 51 / 55 55 / 55 56 the per-cell voltages.
+
+// Our wording per BMS error index. Index 16 is deliberately absent: the pack reports it as a status
+// flag rather than a fault, so it is filtered out below.
+const ERROR_NAMES = [
+  'errDischargeOverTemp', 'errDischargeUnderTemp', 'errChargeOverTemp', 'errChargeUnderTemp',
+  'errCellOverVolt', 'errCellUnderVolt', 'errPackOverVolt', 'errPackUnderVolt',
+  'errDischargeOverCurrent', 'errChargeOverCurrent', 'errCellVoltSpread', 'errCellTempSpread',
+  'errChargeLevelLow', 'errMosfet1Temp', 'errMosfet2Temp', 'errChargingState'
+];
+const ERROR_PACK_FLAG = 16;      // the one index in the array that is a status flag, not a fault
+const INFO_REFRESH_MS = 1000;    // how often an open view redraws from the live frames
+// A cell reads full above 3400 mV and low below 2650 mV; in between it is simply working.
+const CELL_FULL_MV = 3400, CELL_LOW_MV = 2650;
+
+function ecuBit(byte, bit) { return byte != null && ((byte >> bit) & 1) === 1; }
+
+// Active faults only. Over-temperature while discharging or charging counts from level 2, every
+// other type from level 3, which is what keeps a resting low charge level out of the list.
+function collectErrors() {
+  const items = [];
+  if (Array.isArray(T.errors)) {
+    T.errors.forEach((sev, code) => {
+      if (code === ERROR_PACK_FLAG || !(sev > 0)) return;
+      const active = (code === 0 || code === 2) ? sev > 1 : sev > 2;
+      if (!active) return;
+      const key = ERROR_NAMES[code];
+      items.push({
+        kind: 'bad', battery: true,
+        title: key ? t(key) : fmt(t('errUnknown'), { code: code }),
+        sub: fmt(t('errSevSub'), { n: sev }),
+      });
+    });
+  }
+  if (ecuBit(T.ecu1, 0)) items.push({ kind: 'bad', title: t('errBrakeTitle'), sub: t('errBrakeSub') });
+  if (ecuBit(T.ecu1, 3)) items.push({ kind: 'bad', title: t('errWarnTitle'), sub: t('errWarnSub') });
+  if (ecuBit(T.ecu1, 4)) items.push({ kind: 'bad', title: t('errWarn2Title'), sub: t('errWarn2Sub') });
+  if (ecuBit(T.ecu1, 2)) items.push({ kind: 'caution', title: t('errTailTitle'), sub: t('errTailSub') });
+  if (ecuBit(T.ecu1, 7) || ecuBit(T.ecu2, 7)) {
+    items.push({ kind: 'info', title: t('errParkTitle'), sub: t('errParkSub') });
+  }
+  return items;
+}
+
+// A translated one-liner in place of a list, for the states where there is nothing to show yet. The
+// data-t attribute keeps it in step with the language switch.
+function infoNote(key) {
+  const p = document.createElement('p');
+  p.className = 'hint';
+  p.setAttribute('data-t', key);
+  p.textContent = t(key);
+  return p;
+}
+
+// The same note for the cell grid: a child of a grid container is a grid item, so without the
+// page's full-width utility it would sit in one 5.5rem column.
+function gridNote(key) {
+  const p = infoNote(key);
+  p.classList.add('span2');
+  return p;
+}
+
+// One verdict box per finding: the flasher's box already carries a severity colour on its left edge.
+function errorBox(item) {
+  const box = document.createElement('div');
+  box.className = 'verdict ' + item.kind;
+  const title = document.createElement('b');
+  title.textContent = item.title;
+  const sub = document.createElement('span');
+  sub.className = 'detail';
+  sub.textContent = item.sub;
+  box.appendChild(title);
+  box.appendChild(sub);
+  return box;
+}
+
+function renderErrorReports() {
+  const host = $('err-list');
+  if (!host) return;
+  host.replaceChildren();
+  if (!connected) { host.appendChild(infoNote('infoConnectFirst')); return; }
+  const items = collectErrors();
+  if (items.length) { items.forEach(item => host.appendChild(errorBox(item))); return; }
+  // A clean bill of health may only be given once BOTH sources have reported: 55 54 for the battery
+  // and 55 72 for the controller. Until then the honest answer is that nothing is known yet.
+  const complete = Array.isArray(T.errors) && T.ecu1 !== null;
+  host.appendChild(infoNote(complete ? 'errEmpty' : 'infoWaiting'));
+}
+
+// Label plus value, the pair the live card on the page already uses for its firmware rows.
+function batRow(key, value) {
+  const row = document.createElement('div');
+  row.className = 'led-row-inline kv';   // the row shape is the page's, only the value type is new
+  const label = document.createElement('label');
+  label.setAttribute('data-t', key);
+  label.textContent = t(key);
+  const val = document.createElement('b');
+  val.textContent = value;
+  row.appendChild(label);
+  row.appendChild(val);
+  return row;
+}
+
+// Every number the pack reports, in the order the app lists them. A frame that has not arrived
+// leaves its rows on the page placeholder rather than on a zero.
+function batteryRows() {
+  const dash = '-';
+  const v52 = (val, unit, digits) => T.have52 ? (val.toFixed(digits) + ' ' + unit) : dash;
+  const v53 = (val, unit) => T.have53 ? (val + ' ' + unit) : dash;
+  const cellV = mv => T.have53 ? ((mv / 1000).toFixed(3) + ' V') : dash;
+  return [
+    batRow('batVolt', v52(T.volt, 'V', 1)),
+    batRow('batCurrent', v52(T.current, 'A', 1)),
+    batRow('batSoc', T.have52 ? (T.soc + ' %') : dash),
+    batRow('batSoh', T.have52 ? (T.soh + ' %') : dash),
+    batRow('batCapacity', v53(T.capacity, 'Ah')),
+    batRow('batCycles', T.have53 ? String(T.chargeCounter) : dash),
+    batRow('batMaxCellV', cellV(T.maxCellV)),
+    batRow('batMinCellV', cellV(T.minCellV)),
+    batRow('batMaxCellT', v52(T.maxCellTemp, '°C', 0)),
+    batRow('batMinCellT', v52(T.minCellTemp, '°C', 0)),
+    batRow('batDelta', v53(T.maxCellV - T.minCellV, 'mV')),
+  ];
+}
+
+// One tile per cell, coloured by voltage and outlined while the BMS balances it. The balancing
+// bitfield covers the first eight cells only, which is all the frame carries.
+function renderBatteryCells(host) {
+  host.replaceChildren();
+  const cells = T.cellMv;
+  if (!cells || !cells.some(mv => mv > 0)) { host.appendChild(gridNote('infoWaiting')); return; }
+  const count = (T.have53 && T.cellCount > 0) ? Math.min(T.cellCount, CELL_SLOTS) : CELL_SLOTS;
+  for (let k = 0; k < count; k++) {
+    const mv = cells[k] || 0;
+    if (mv <= 0) continue;     // a slot the pack has not reported is left out, not drawn as 0.000 V
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    if (mv > CELL_FULL_MV) tile.classList.add('cell-full');
+    else if (mv < CELL_LOW_MV) tile.classList.add('cell-low');
+    const balancing = T.have53 && k < 8 && ((T.balance >> k) & 1) === 1;
+    if (balancing) tile.classList.add('cell-bal');
+    const volt = document.createElement('b');
+    volt.textContent = (mv / 1000).toFixed(3) + ' V';
+    const name = document.createElement('small');
+    name.textContent = fmt(t('batCell'), { n: k + 1 });
+    tile.appendChild(volt);
+    tile.appendChild(name);
+    if (balancing) {
+      const tag = document.createElement('small');
+      tag.className = 'bal';
+      tag.textContent = t('batBalancing');
+      tile.appendChild(tag);
+    }
+    host.appendChild(tile);
+  }
+}
+
+function renderBatteryInfo() {
+  const health = $('bat-health'), pack = $('bat-pack'), cells = $('bat-cells');
+  if (!health || !pack || !cells) return;
+  health.replaceChildren();
+  pack.replaceChildren();
+  if (!connected) {
+    health.appendChild(infoNote('infoConnectFirst'));
+    cells.replaceChildren(gridNote('infoConnectFirst'));
+    return;
+  }
+  // The health box is the battery half of the error report, so the two views can never disagree
+  // about what counts as active.
+  if (!Array.isArray(T.errors)) {
+    health.appendChild(infoNote('infoWaiting'));
+  } else {
+    const warnings = collectErrors().filter(item => item.battery).map(item => item.title);
+    const box = document.createElement('div');
+    box.className = warnings.length ? 'verdict bad' : 'verdict';
+    const head = document.createElement('b');
+    head.textContent = warnings.length ? fmt(t('batHealthWarn'), { n: warnings.length }) : t('batHealthOk');
+    box.appendChild(head);
+    if (warnings.length) {
+      const list = document.createElement('ul');
+      warnings.forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = w;
+        list.appendChild(li);
+      });
+      box.appendChild(list);
+    }
+    health.appendChild(box);
+  }
+  batteryRows().forEach(row => pack.appendChild(row));
+  renderBatteryCells(cells);
+}
+
+// Both views need a link that is proven to deliver frames. During a flash no telemetry arrives at
+// all, so the buttons follow the same rule as the other scooter controls.
+function refreshInfoButtons() {
+  const ready = connected && linkConfirmed && !flashOwnsLink();
+  ['btn-err', 'btn-bat'].forEach(id => { const b = $(id); if (b) b.disabled = !ready; });
+}
+
+// While a view is open it redraws from the live frames; closing it stops that again.
+let errTimer = null, batTimer = null;
+
+function openInfoView(dialogId, render, stop) {
+  const dlg = $(dialogId);
+  if (!dlg || !dlg.showModal) { log('this browser cannot show the ' + dialogId + ' view'); return; }
+  stop();
+  render();
+  dlg.showModal();
+  return setInterval(render, INFO_REFRESH_MS);
+}
+
+function openErrorReports() { errTimer = openInfoView('err', renderErrorReports, stopErrorReports) || null; }
+function stopErrorReports() { if (errTimer) { clearInterval(errTimer); errTimer = null; } }
+function openBatteryInfo() { batTimer = openInfoView('bat', renderBatteryInfo, stopBatteryInfo) || null; }
+function stopBatteryInfo() { if (batTimer) { clearInterval(batTimer); batTimer = null; } }
 
 // --------------------------- language ---------------------------
 //
@@ -1154,7 +1433,7 @@ function applyLang() {
 }
 
 // --------------------------- theme ---------------------------
-// Dark is the default. The choice is remembered, and the icon shows what a tap would DO: a sun
+// Dark is the default. The choice is remembered. The icon shows what a tap would DO: a sun
 // while the page is dark, a moon while it is light.
 
 const LS_THEME = 'tru_theme';
@@ -1167,11 +1446,13 @@ function applyTheme(dark) {
     b.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark'));
     b.title = b.getAttribute('aria-label');
   }
-  localStorage.setItem(LS_THEME, dark ? 'dark' : 'light');
+  // Guarded like every other stored preference here: a browser in private mode throws on write.
+  try { localStorage.setItem(LS_THEME, dark ? 'dark' : 'light'); } catch (e) {}
 }
 
 function initTheme() {
-  const saved = localStorage.getItem(LS_THEME);
+  let saved = null;
+  try { saved = localStorage.getItem(LS_THEME); } catch (e) {}
   applyTheme(saved !== 'light');
   const b = $('btn-theme');
   if (b) b.addEventListener('click', () => {
@@ -1431,6 +1712,19 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   $('btn-set-cruise').addEventListener('click', () => setCruise(parseInt($('cruise-in').value, 10)));
 
+  // Error reports and battery info. Esc closes a dialog too, so the refresh is stopped from the
+  // close event rather than from the buttons.
+  $('btn-err').addEventListener('click', openErrorReports);
+  $('btn-bat').addEventListener('click', openBatteryInfo);
+  ['err-close', 'err-close-2'].forEach(id => {
+    $(id).addEventListener('click', () => { const d = $('err'); if (d) d.close(); });
+  });
+  ['bat-close', 'bat-close-2'].forEach(id => {
+    $(id).addEventListener('click', () => { const d = $('bat'); if (d) d.close(); });
+  });
+  $('err').addEventListener('close', stopErrorReports);
+  $('bat').addEventListener('close', stopBatteryInfo);
+
   // Firmware flasher. Clearing the input first makes re-picking the same file fire "change" again.
   $('btn-pick').addEventListener('click', () => {
     const f = $('fw-file');
@@ -1467,6 +1761,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   refreshSettingsInputs();   // start disabled; enabled + prefilled once a scooter reports its config
   refreshFlashButtons();     // start disabled; both need a link and Flash needs a checked file
+  refreshInfoButtons();      // start disabled; both views need a link that delivers frames
   if (!navigator.bluetooth) log('Web Bluetooth not available. On iOS use the Bluefy browser.');
   // Someone arriving at .../#disclaimer meant the terms, an address written in the documents.
   if (location.hash.replace('#', '').toLowerCase().startsWith('disclaimer')) openDisclaimer();

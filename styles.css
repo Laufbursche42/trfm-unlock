@@ -1,12 +1,13 @@
 /* Palette taken from the Laufbursche Edition themes (telemetry.html). Dark is the default; the
    light set below is switched in by data-theme on <html>.
    --field, --chip and --on-accent exist because a raw colour was written straight into a few rules
-   before, and a hard-coded dark value stays dark in the light theme. */
+   before. A hard-coded dark value stays dark whatever the theme says. */
 :root {
   --bg: #0A0C10; --card: #111420; --line: #1C2035; --text: #E4EDF6; --label: #C6D2E2;
   --muted: #8A93A8; --accent: #B8F020; --value: #BCEB39; --good: #1EE89A; --bad: #FF5050;
   --warn: #FFAA18; --gps: #3DB8FF; --mono: ui-monospace, Consolas, monospace;
   --scroll: #2B3350; --field: #0d1018; --chip: #171b2a; --on-accent: #0A0C10;
+  color-scheme: dark;   /* native controls, scrollbars and the colour well follow the theme */
   /* Tinted boxes and their emphasis text. The 8-digit values are one hue at 8 % and 25 % opacity,
      which is why they carry through both themes without a second set. */
   --warn-bg: #FFAA1814; --warn-line: #FFAA1840; --warn-strong: #ffc65a;
@@ -18,10 +19,11 @@
   --bg: #E8EDF5; --card: #FFFFFF; --line: #CDD5E4; --text: #0A0D18; --label: #0A0D18;
   --muted: #4A5468;
   /* The lime of the dark theme is unreadable on white, so the light accent is the dark green the
-     app uses there, and text ON the accent turns white instead of near-black. */
+     app uses there. Text ON the accent turns white instead of near-black. */
   --accent: #2A6A00; --value: #2A6A00; --good: #1B7A4B; --bad: #CC2020;
   --warn: #A05800; --gps: #005AA0;
   --scroll: #B6C0D4; --field: #FFFFFF; --chip: #F1F4FA; --on-accent: #FFFFFF;
+  color-scheme: light;
   /* The tinted boxes keep their hue; only the emphasis text darkens enough to read on white. */
   --warn-strong: #7A4300; --bad-strong: #A01818;
   --bad-line-soft: #E0B4B4; --warn-line-soft: #E0CBA4;
@@ -62,7 +64,8 @@ h1 { font-size: 17px; margin: 0; letter-spacing: .01em; line-height: 1.2; }
 h1 span { color: var(--accent); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
   display: flex; flex-direction: column; gap: 12px; }
-.card h2 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+/* .dlg-sec is the same heading inside a dialog, where there is no .card around it. */
+.card h2, .dlg-sec { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
   margin: 0; font-weight: 700; }
 .sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0 2px; width: 100%; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -118,7 +121,6 @@ label { color: var(--label); font-size: 12px; text-transform: uppercase; letter-
 pre#log { margin: 0; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
   font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-height: 150px; overflow: auto;
   white-space: pre-wrap; overscroll-behavior: contain; }
-/* The version keeps the first line and the far right, the links wrap under themselves. */
 /* Links on one line, the build stamp centred on the line beneath. The links may still wrap on a
    very narrow phone rather than run off the edge. */
 .foot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 2px; }
@@ -145,6 +147,11 @@ code { font-family: var(--mono); font-size: 12px; background: var(--field); bord
 .verdict { border: 1px solid var(--line); border-left: 3px solid var(--good); background: var(--field);
   border-radius: 8px; padding: 9px 11px; margin-top: 10px; font-size: 13px; color: var(--label); }
 .verdict.bad { border-left-color: var(--bad); }
+/* The error report reuses the box for its findings, so it needs the other two severities as well.
+   First in a list it carries no top margin: the dialog body already spaces its children. */
+.verdict.caution { border-left-color: var(--warn); }
+.verdict.info { border-left-color: var(--gps); }
+#err-list > .verdict:first-child, #bat-health > .verdict { margin-top: 0; }
 .verdict b { color: var(--text); }
 .verdict .detail { display: block; margin-top: 4px; font-family: var(--mono); font-size: 12px;
   color: var(--muted); }
@@ -177,17 +184,17 @@ dialog::backdrop { background: var(--backdrop); }
 
 /* Document viewer. Only the open dialog is a flex column: a display value on the
    closed one would beat the browser's display:none and drop it into the page. */
-/* Both scrolling dialogs share one shell; only the width differs. */
-#doc, #led { max-height: 88vh; overflow: hidden; }
+/* Every scrolling dialog shares one shell; only the width differs. */
+#doc, #led, #err, #bat { max-height: 88vh; overflow: hidden; }
 #doc { max-width: 44rem; }
-#led { max-width: 30rem; }
-#doc[open], #led[open] { display: flex; flex-direction: column; }
+#led, #err, #bat { max-width: 30rem; }
+#doc[open], #led[open], #err[open], #bat[open] { display: flex; flex-direction: column; }
 .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .doc-head h3 { margin: 0; font-size: 15px; color: var(--text); }
-#doc-x, #led-close { flex: 0 0 auto; background: none; border: 0; color: var(--label); font-size: 22px;
-  line-height: 1; padding: 0 4px; }
-#doc-x:hover, #led-close:hover { color: var(--accent); }
+#doc-x, #led-close, #err-close, #bat-close { flex: 0 0 auto; background: none; border: 0;
+  color: var(--label); font-size: 22px; line-height: 1; padding: 0 4px; }
+#doc-x:hover, #led-close:hover, #err-close:hover, #bat-close:hover { color: var(--accent); }
 .doc-body { padding: 14px 16px; overflow-y: auto; overscroll-behavior: contain;
   color: var(--label); font-size: 13.5px; }
 .doc-body > :first-child { margin-top: 0; }
@@ -221,7 +228,8 @@ dialog::backdrop { background: var(--backdrop); }
 /* LED dialog. Shell and close button come from the document viewer above; the body is the only
    part that differs, because it is the one that can outgrow the screen. Scrollbars need nothing
    here: the page styles them globally on * near the top of this file. */
-#led .dlg-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#led .dlg-body, #err .dlg-body, #bat .dlg-body { flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain; }
 /* One setting per row: the label above, the control across the full width beneath it. The base
    input rule pads every field by 10px, which is right for a text box and wrong for a slider or a
    colour well, so those two reset it and set their own height. */
@@ -229,7 +237,7 @@ dialog::backdrop { background: var(--backdrop); }
 /* Both controls sit at 32 px so they read as one set. The base input rule is built for the wide
    fields on the page (10 px padding at 15 px type, about 42 px tall) and towers over a dialog whose
    labels are 13 px. */
-/* flex: 0 0 auto is the load-bearing part. The base rule gives every field flex: 1 1 90px, and in
+/* flex: 0 0 auto is the load-bearing part. The base rule gives every field flex: 1 1 90px. In
    this COLUMN the main axis is vertical, so that basis of 90 px plus grow decides the height and
    beats any height given here. */
 /* The effect list is built from page elements rather than a <select>, because the drop-down of a
@@ -239,7 +247,7 @@ dialog::backdrop { background: var(--backdrop); }
 .picker-btn { width: 100%; height: 32px; padding: 0 10px; font-size: 13px; text-align: left;
   background: var(--field); color: var(--text); border: 1px solid var(--line); border-radius: 10px; }
 .picker-btn::after { content: "▾"; float: right; color: var(--muted); }
-/* Fixed, not absolute. The dialog body is a scroll container, and an absolutely positioned list
+/* Fixed, not absolute. The dialog body is a scroll container. An absolutely positioned list
    inside one gets clipped by it and stretches its scroll range, so the modal grew a second scrollbar
    the rider had to work through before reaching the list. Fixed takes it out of that box entirely.
    Left, top and width are written by the script from the button position. */
@@ -301,3 +309,17 @@ dialog::backdrop { background: var(--backdrop); }
   border-radius: 50%; background: var(--text); transition: transform .15s; }
 .switch > input:checked + span { background: var(--accent); }
 .switch > input:checked + span::after { transform: translateX(18px); background: var(--on-accent); }
+
+/* Battery info. One label/value pair per line. The column and the row both reuse shapes the page
+   already has, so only the value type is new here. */
+#bat-pack { display: flex; flex-direction: column; gap: 7px; }
+.kv > b { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--value); }
+/* The cells are the tiles of the live card, packed tighter because there are two dozen of them.
+   Everything but the size comes from .tile / .grid above. */
+.grid.cells { grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 8px; }
+.grid.cells .tile { padding: 8px 6px; }
+.grid.cells .tile b { font-size: 15px; }
+.tile.cell-full b { color: var(--good); }
+.tile.cell-low b { color: var(--bad); }
+.tile.cell-bal { border-color: var(--accent); }
+.tile .bal { display: block; color: var(--accent); }
