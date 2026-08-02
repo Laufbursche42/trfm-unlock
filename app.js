@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v46';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v60';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1138,6 +1138,9 @@ function applyLang() {
   { const el = $('link-trademarks'); if (el) el.href = docFile('TRADEMARKS'); }
 
   { const el = $('langs'); if (el) el.setAttribute('aria-label', t('langGroup')); }
+  { const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const el = $('btn-theme');
+    if (el) { el.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark')); el.title = el.getAttribute('aria-label'); } }
   { const el = $('build-ver'); if (el) el.textContent = t('buildLabel') + ' ' + BUILD; }
   document.querySelectorAll('#langs button').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
@@ -1148,6 +1151,32 @@ function applyLang() {
   if (fwResult) renderFwResult(); else renderFwProgress();
   { const el = $('status'); setStatus(el ? el.dataset.state : 'disconnected'); }
   renderLive();
+}
+
+// --------------------------- theme ---------------------------
+// Dark is the default. The choice is remembered, and the icon shows what a tap would DO: a sun
+// while the page is dark, a moon while it is light.
+
+const LS_THEME = 'tru_theme';
+
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const b = $('btn-theme');
+  if (b) {
+    b.innerHTML = dark ? '&#9728;' : '&#9790;';   // scan-ok: a fixed character, not user input
+    b.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark'));
+    b.title = b.getAttribute('aria-label');
+  }
+  localStorage.setItem(LS_THEME, dark ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(LS_THEME);
+  applyTheme(saved !== 'light');
+  const b = $('btn-theme');
+  if (b) b.addEventListener('click', () => {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'light');
+  });
 }
 
 function initLangSwitch() {
@@ -1387,6 +1416,7 @@ function wireDocViewer() {
 window.addEventListener('DOMContentLoaded', () => {
   log('tr-unlock build ' + BUILD);   // so a tester's log shows which deployed version they run
   initLangSwitch();
+  initTheme();                       // before applyLang, so the first label is in the right language
   wireDocViewer();
   applyLang();                       // fills every data-t element, German first
   $('btn-conn').addEventListener('click', () => {

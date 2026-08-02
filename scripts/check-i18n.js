@@ -1,7 +1,7 @@
 'use strict';
 
 // Coverage check for the translation table: every data-t key in index.html and every
-// t()/tList() key in app.js must exist in both languages. No table entry may sit unused.
+// t()/tList() key in the page scripts must exist in both languages. No table entry may sit unused.
 // Run with: node scripts/check-i18n.js
 //
 // It also compares the two languages recursively, so a missing item inside phase, msg
@@ -12,7 +12,12 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+// Every script the page loads, so a key used from one of them does not read as unused.
+const SCRIPTS = ['app.js', 'led.js', 'ota.js'];
+const app = SCRIPTS
+  .filter(f => fs.existsSync(path.join(root, f)))
+  .map(f => fs.readFileSync(path.join(root, f), 'utf8'))
+  .join(String.fromCharCode(10));
 
 global.window = {};
 require(path.join(root, 'i18n.js'));
