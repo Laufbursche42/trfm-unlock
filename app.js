@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v68';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v69';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1659,8 +1659,9 @@ function openDisclaimer() {
   const dlg = $('doc'), body = $('doc-body');
   if (!dlg || !body) return;
   $('doc-title').textContent = t('footDisclaimer');
-  body.innerHTML = '<p>' + escHtml(t('discLede')) + '</p><ul>'   // scan-ok: escaped lede, list items from our own table
-                 + tList('discPoints').map(p => '<li>' + p + '</li>').join('') + '</ul>';
+  var html = '<p>' + escHtml(t('discLede')) + '</p><ul>'
+           + tList('discPoints').map(p => '<li>' + p + '</li>').join('') + '</ul>';
+  body.innerHTML = html;   // scan-ok: lede escaped, list items are our own translation table, not user data
   body.scrollTop = 0;
   if (typeof dlg.showModal === 'function') dlg.showModal();
 }
