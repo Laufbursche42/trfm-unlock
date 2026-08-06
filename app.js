@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v67';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v68';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 

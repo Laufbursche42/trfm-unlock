@@ -1,5 +1,7 @@
 # Anleitung: Laufbursche Fighter Mini (eKFV) unlock
 
+> **Machbarkeitsstudie.** Dieses Werkzeug zeigt, was in der Firmware eines Teverun-Rollers technisch möglich ist, es ist kein fertiges Produkt. Fehlerfreier Betrieb wird nicht versprochen, es gibt keinerlei Gewährleistung. Was du hier baust und flashst, tust du auf eigenes Risiko.
+
 ## 1. Was du brauchst
 
 Alles passiert im Browser über Web Bluetooth: verbinden, Firmware flashen, entsperren, sperren, Raddurchmesser und Tempomat einstellen. Es gibt nichts zu installieren. Gebraucht wird nur:
@@ -50,8 +52,6 @@ Zwei Dinge halten einen Flash außerdem am Leben:
 Diese Seite liefert keine Firmware aus, du bringst die Datei selbst mit. Hast du schon eine, kannst du gleich zu Abschnitt 5 springen.
 
 Sonst baust du sie dir mit dem [Laufbursche Firmware Patcher](https://laufbursche42.github.io/tr-fw/). Du wählst dort das Serienabbild deines eigenen Scooters aus, der Patcher wendet die Patches im Browser an und gibt dir eine flashbare Intel-HEX zurück, benannt wie `AWIVCU_APP_R5_4_19_V44.hex`. Die Datei verlässt dein Gerät dabei nicht.
-
-Angenommen wird ausschließlich die Serien-**R5.4.19**, geprüft am Inhalt des Abbildes statt am Dateinamen. Ein Ali-Abbild, eine andere Serienversion oder eine schon gepatchte Datei lehnt der Patcher mit Begründung ab.
 
 ---
 

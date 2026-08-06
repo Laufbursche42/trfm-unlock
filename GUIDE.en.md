@@ -1,5 +1,7 @@
 # Guide: Laufbursche Fighter Mini (eKFV) unlock
 
+> **Feasibility study.** This tool exists to show what a Teverun scooter's firmware makes possible, it is not a finished product. Error-free operation is not promised, there is no warranty of any kind. Whatever you build here and flash, you do at your own risk.
+
 ## 1. What you need
 
 Everything happens in the browser over Web Bluetooth: connect, flash a firmware, unlock, lock, set wheel diameter and cruise. There is nothing to install. All it takes is:
@@ -50,8 +52,6 @@ Two more things that keep a flash alive:
 This page ships no firmware, so you bring the file. If you already have one, skip straight to section 5.
 
 Otherwise you build it with the [Laufbursche Firmware Patcher](https://laufbursche42.github.io/tr-fw/). You supply the stock image of your own scooter, the patcher applies the patch set in the browser and hands you a flashable Intel HEX back, named like `AWIVCU_APP_R5_4_19_V44.hex`. The file never leaves your device.
-
-It accepts the stock **R5.4.19** only, judged on the content of the image rather than on the file name. An Ali image, another stock version or an already patched file is refused with a reason.
 
 ---
 

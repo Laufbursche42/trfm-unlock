@@ -189,6 +189,7 @@ window.I18N = {
 
     discLede: "Dieses Werkzeug ist ein freies Gemeinschaftsprojekt und steht in keiner Verbindung zu Teverun. Bitte lies diese Punkte, bevor du es benutzt.",
     discPoints: [
+      "<b>Machbarkeitsstudie:</b> Dieses Werkzeug zeigt, was in der Firmware eines Teverun-Rollers technisch möglich ist, es ist kein fertiges Produkt. Fehlerfreier Betrieb wird nicht versprochen, es gibt keinerlei Gewährleistung. Was du hier baust und flashst, tust du auf eigenes Risiko.",
       "<b>Betriebserlaubnis:</b> Ein entsperrter Scooter fährt schneller, als seine Betriebserlaubnis zulässt. Damit erlischt sie und mit ihr in aller Regel der Versicherungsschutz. Bei einem Unfall haftest du persönlich, auch gegenüber Dritten.",
       "<b>Öffentlicher Verkehr:</b> Wir raten dringend davon ab, entsperrt außerhalb von Privatgelände zu fahren. Was bei dir erlaubt ist, musst du selbst prüfen.",
       "<b>Du wählst die Firmware.</b> Diese Seite prüft nur Aufbau, Prüfsumme und Zieladresse der Datei. Was eine Firmware im Fahrbetrieb tut, kann sie nicht wissen. Das gilt auch für eine Datei, die du mit unserem Patcher gebaut hast.",
@@ -388,6 +389,7 @@ window.I18N = {
 
     discLede: "This tool is a free community project with no connection to Teverun. Please read these points before you use it.",
     discPoints: [
+      "<b>Feasibility study:</b> This tool exists to show what a Teverun scooter's firmware makes possible, it is not a finished product. Error-free operation is not promised, there is no warranty of any kind. Whatever you build here and flash, you do at your own risk.",
       "<b>Road approval:</b> An unlocked scooter runs faster than its type approval allows. That approval is void and with it, as a rule, your insurance cover. In an accident you are personally liable, including towards third parties.",
       "<b>Public roads:</b> We strongly advise against riding unlocked anywhere but on private property. What is allowed where you live is yours to check.",
       "<b>You pick the firmware.</b> This page only checks the structure, the checksum and the target address of the file. What a firmware does out on the road is beyond it. That holds for a file built with our own patcher as well.",
