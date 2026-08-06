@@ -6,6 +6,22 @@ A static web page that talks to a Teverun Fighter Mini (eKFV) over Web Bluetooth
 
 **Open the web app: [laufbursche42.github.io/trfm-unlock](https://laufbursche42.github.io/trfm-unlock/)**
 
+Or run it yourself, no build step, no dependencies: clone the repo and serve the folder over a local HTTP server. Opening `index.html` directly as a `file://` URL will not work, the page fetches its own documents and browsers block that over `file://`.
+
+```
+git clone https://github.com/Laufbursche42/trfm-unlock.git
+cd trfm-unlock
+npx serve .
+```
+
+Any static server works. Without Node, Python's own one does the same job:
+
+```
+python -m http.server 8000
+```
+
+Then open the printed address in a browser that supports Web Bluetooth.
+
 **Guide: [Deutsch](GUIDE.de.md) | [English](GUIDE.en.md)** covers everything step by step, from the first connect to a flashed firmware.
 
 ## What it does
