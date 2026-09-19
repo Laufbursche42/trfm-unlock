@@ -1,3 +1,5 @@
+> 🚨 **This tool is moving.** This repository is **no longer maintained** - please switch to the new tool: **[lb-tool-web.laufbursche.workers.dev](https://lb-tool-web.laufbursche.workers.dev/)**. Trouble switching? Open an [issue on GitHub](https://github.com/Laufbursche42/Laufbursche42/issues/new) or send a [PM on the eScooter-Stammtisch forum](https://www.escooter-stammtisch.de/index.php?user/6497-laufbursche/).
+
 # Laufbursche Fighter Mini (eKFV) unlock
 
 A static web page that talks to a Teverun Fighter Mini (eKFV) over Web Bluetooth. It toggles the speed lock live, sets wheel diameter and cruise and flashes firmware to the controller, straight from the browser. Nothing to install: no app store, no signing, no developer account. It runs in **Bluefy** on iOS and in **Chrome** on Android or desktop.
