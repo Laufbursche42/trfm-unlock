@@ -18,6 +18,7 @@ window.I18N = {
 
     s1Title: "So fängst du an",
     startHintGuide: "Neu hier? In der <a href=\"GUIDE.de.md\" data-doc=\"GUIDE\" data-t=\"footGuide\">Anleitung</a> steht jeder Schritt.",
+    movedHint: "Hinweis: Dieses Werkzeug wandert nach <a href=\"https://lb-tool-web.pages.dev/\" target=\"_blank\" rel=\"noopener\">lb-tool-web.pages.dev</a>, das mehrere Roller unter einem Dach bündelt.",
 
     s2Title: "Steuerung",
     btnConnect: "Verbinden",
@@ -286,6 +287,7 @@ window.I18N = {
 
     s1Title: "How to start",
     startHintGuide: "New here? Every step is in the <a href=\"GUIDE.en.md\" data-doc=\"GUIDE\" data-t=\"footGuide\">guide</a>.",
+    movedHint: "Note: this tool is moving to <a href=\"https://lb-tool-web.pages.dev/\" target=\"_blank\" rel=\"noopener\">lb-tool-web.pages.dev</a>, which brings several scooters under one roof.",
 
     s2Title: "Controls",
     btnConnect: "Connect",
