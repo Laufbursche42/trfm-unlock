@@ -24,11 +24,15 @@ Everything happens in the browser over Web Bluetooth: connect, flash a firmware,
 3. Tap **Connect** and pick your scooter in the browser's chooser. Only scooters show up in that list.
 4. Watch the status pill in the top right: `connecting`, then `linking`, then `connected`. It says `connected` only once real telemetry arrives, so it means the link carries data rather than that the radio merely agreed.
 
-The tiles below then fill in:
+The **Telemetry** tiles below then fill in, all read live from the scooter:
 
-- **Wheel** and **Cruise**: what the controller currently has.
+- **Speed** and **Gear**, the **Lock** state, **Wheel** and **Cruise**: what the controller currently has.
 - **Firmware version**: the version the controller reports, `R5.4.19` on the stock firmware.
 - **Laufbursche Version**: the build stamp of a Laufbursche firmware, for example `V44`. It stays at `-` on a stock firmware.
+
+Two buttons open read-only detail views: **Error reports** (active faults and warnings) and **Battery info** (pack health, summary and per-cell voltages). Everything the controller reports but does not need on the main view sits, read-only, in the collapsible **Advanced settings** section (see section 8).
+
+A value the scooter has not sent yet shows `-` rather than a made-up `0`.
 
 If nothing arrives, the page reports `no-data` and keeps the link open. The scooter was out of range or asleep: wake it up and the tiles fill in on their own. A scooter that sits in update mode after an interrupted flash sends no telemetry either. That is exactly why the link stays: the new flash runs over the same connection. The very first connect always needs the browser chooser. That is a browser security rule no shortcut can skip.
 
@@ -75,7 +79,7 @@ Otherwise you build it with the [Laufbursche Firmware Patcher](https://laufbursc
 
 The bar shows the percentage and which packet of how many is on the wire. The line under it names the step the flasher is in.
 
-The log is the detailed record, newest line on top. A healthy run reads like this, oldest first:
+The **log** at the very bottom of the page is the detailed record, oldest line first with the newest at the bottom, and it scrolls to follow along. A healthy run reads like this:
 
 ```
 Ready for upgrade
@@ -138,9 +142,31 @@ Both sit in the **Settings** card. They become editable once the scooter has rep
 
 Both values are stored in this browser on this device and written back automatically after an unlock. Nothing is uploaded anywhere.
 
+Every disabled control tells you **why** it is greyed, in a line right under it: `Connect the scooter first`, `Waiting for data from the scooter ...`, `Unlock the scooter to change ...` or `Locked while flashing`. So a greyed button is never a mystery.
+
 ---
 
-## 9. Home-screen shortcut
+## 9. Advanced settings and LED
+
+Open the collapsible **Advanced settings** card to see everything else the controller reports in its configuration frame, read-only: the raw speed and assist limits, front and rear current limits, start and eABS levels, pack voltage, motor pole pairs, protection temperature, the unit (km/mile) and the ABS / start-mode / anti-theft / smart / eco flags, plus the sleep and protection times. These are shown so you can read the full state; only wheel and cruise are writable in this tool, because those are the only fields whose write-back path is proven. The rest are not made editable rather than risk clobbering a value the controller would apply blindly.
+
+The same card holds the **LED lighting** control for the scooter's RGB strips: a master switch, brightness, a colour and a list of animations. Before the strips are first switched on you confirm a road-legal notice: **in Germany these additional LEDs are not permitted while riding in public traffic.** Brightness is shared with the indicators and the brake light, so dimming the strips dims those too; switching the LEDs off puts brightness back to 100 first. The scooter does not report its LED state back, so what you see here is what the page last commanded.
+
+---
+
+## 10. The log panel
+
+The **Log** card at the bottom of the page is the running record of what the tool does. Every line carries a timestamp; the newest sits at the bottom and the view scrolls to follow.
+
+- **Anonymize log to share publicly** (on by default): masks the FIN / Bluetooth name, the device id and long hex runs before the log is shown, copied or saved, so you can post it for troubleshooting without leaking your scooter's identity. Turn it off only if you need the full record locally, and then do not share it.
+- **Diagnostic log** (off): additionally records every raw frame in both directions as hex - `TX` sent, `RX` received. For deep troubleshooting; it stays off in normal use so the log stays readable.
+- **Copy**, **Clear** and **Save as .txt** do what they say. Copy and Save use the same anonymised text as the on-screen log.
+
+The transcript itself is always English, in both interface languages, so a shared log is never a mix.
+
+---
+
+## 11. Home-screen shortcut
 
 A shortcut opens the page already set to lock or unlock: a paired scooter reconnects without the chooser and the action runs by itself. Make one shortcut for **Unlock** and one for **Lock**.
 
@@ -158,7 +184,7 @@ The scooter has to be on and in range. The first-ever visit still needs the one-
 
 ---
 
-## 10. Limits worth knowing
+## 12. Limits worth knowing
 
 - **No background operation.** The link lives only while the page is open and in the foreground.
 - **Reconnect only inside the running session.** If the radio link drops while the page is open and in the foreground, it reconnects by itself. Once the page is closed the link is gone and you press **Connect** again. Only a shortcut carrying `?do=lock` or `?do=unlock` reconnects without the chooser on open.
@@ -167,6 +193,6 @@ The scooter has to be on and in range. The first-ever visit still needs the one-
 
 ---
 
-## 11. Legal
+## 13. Legal
 
 Read the [disclaimer](README.md#disclaimer) in full before you flash anything. In short: a patched firmware ends the road approval and the insurance cover, so the scooter belongs on private property. An interrupted flash leaves a scooter that will not run until a flash completes. Everything you do here is at your own risk.

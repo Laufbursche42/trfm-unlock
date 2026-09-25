@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v71';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v72';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -219,6 +219,7 @@ const T = {
   cellMv: null, errors: null,
   // Controller status bytes 55 72 t[10] / t[11]: the fault bits behind the error report.
   ecu1: null, ecu2: null,
+  have72: false,   // a 55 72 has arrived, so the speed reading is real and not a start-up 0
 };
 
 function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
@@ -228,7 +229,6 @@ function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
 // with 0x55 and has a valid CRC. The old code assumed 20-byte-aligned notifications and, on a unit
 // that fragments, parsed nothing at all: no telemetry, so the FIN only appeared on disconnect.
 let rxBuf = new Uint8Array(0);
-let diagNotify = 0;
 let diagParsed = false;
 
 // One OTA answer per notification, checked exactly the way ota.js checks it: header 0xCC plus the
@@ -242,6 +242,7 @@ function onNotify(value) {                       // value: DataView
   const len = value.byteLength;
   const u = new Uint8Array(len);
   for (let i = 0; i < len; i++) u[i] = value.getUint8(i);
+  logRx(u);                                      // raw notification, only emitted when Diag log is on
   const otaResp = isOtaResponse(u);
   if (otaResp) confirmLink();                    // an answer from the controller proves the link
   // A running flash owns the link: the engine gets the raw notification, exactly as the native app
@@ -251,12 +252,6 @@ function onNotify(value) {                       // value: DataView
   // A scooter waiting in update mode streams no telemetry, it only answers on the OTA path, so an
   // OTA answer is the only link proof it can give (see the phantom-link timer in connectGatt).
   if (otaResp) return;
-  if (diagNotify < 3) {                          // log the first raw notifications for diagnosis
-    diagNotify++;
-    let h = '';
-    for (let i = 0; i < Math.min(len, 12); i++) h += u[i].toString(16).padStart(2, '0') + ' ';
-    log('rx ' + len + 'B: ' + h.trim());
-  }
   const merged = new Uint8Array(rxBuf.length + len);
   merged.set(rxBuf, 0);
   merged.set(u, rxBuf.length);
@@ -304,6 +299,7 @@ function dispatch(t) {
       if (T.speedRaw >= 3000 || v <= 0.5) v = 0;
       if (S.isUnitMile) v = v / 1.6093439;
       T.speed = v;
+      T.have72 = true;
       break;
     }
     case 0x51: parseCells(t, 0); break;      // cells 1-8
@@ -365,7 +361,18 @@ function ascii(t, from, toInc) {
   }
   return s.trim();
 }
-function updateFin() { T.fin = (deviceName || T.frameNum || '').trim(); }   // FIN only (BLE name; telemetry as fallback)
+function updateFin() { T.fin = (deviceName || T.frameNum || '').trim(); setDevInfo(); }   // FIN only (BLE name; telemetry as fallback)
+
+// Surface the picked device (its FIN / BLE name) on the connection card, like the standard tools'
+// #devinfo. This is the rider's own device on their own screen; the Public-Log anonymiser covers the
+// exported log, not this line.
+function setDevInfo() {
+  const el = $('devinfo');
+  if (!el) return;
+  const name = (deviceName || T.frameNum || '').trim();
+  if (name) { el.textContent = fmt(t('devSelected'), { name: name }); el.hidden = false; }
+  else { el.textContent = ''; el.hidden = true; }
+}
 
 // --------------------------- BLE connection ---------------------------
 
@@ -439,7 +446,7 @@ async function connectGatt(next) {
     setStatus('connecting');
     notifyReady = false; connected = false;
     rxBuf = new Uint8Array(0);
-    diagNotify = 0; diagParsed = false;                            // fresh frame buffer + diagnostics
+    diagParsed = false;                                            // fresh frame buffer + diagnostics
     server = await device.gatt.connect();
     const svc = await pickService(server);
     if (!svc) { setStatus('no-service'); log('no matching GATT service'); return; }
@@ -619,6 +626,7 @@ async function doWrite(frame) {
   const wc = writeChar;
   if (!wc) throw 'no write characteristic';
   const buf = frame.buffer ? frame : Uint8Array.from(frame);
+  logTx(buf);                                    // hex frame, only emitted when Diag log is on
   if (wc.properties.write && wc.writeValueWithResponse) return wc.writeValueWithResponse(buf);
   if (wc.properties.writeWithoutResponse && wc.writeValueWithoutResponse) return wc.writeValueWithoutResponse(buf);
   return wc.writeValue(buf);
@@ -680,6 +688,7 @@ function otaWrite(frame) {
 async function otaWriteOnce(frame) {
   const wc = writeChar;
   if (!wc) throw new Error('no write characteristic');
+  logTx(frame, 'ota');                            // hex frame, only emitted when Diag log is on
   if (wc.properties.writeWithoutResponse && wc.writeValueWithoutResponse) return wc.writeValueWithoutResponse(frame);
   if (wc.writeValueWithResponse) return wc.writeValueWithResponse(frame);
   return wc.writeValue(frame);
@@ -736,6 +745,24 @@ function lock() {
   enqueue(setLockState(false));
   T.lock = 'locked';
   refreshToggle();
+}
+
+// The ONE guarded entry point for the lock/unlock toggle. The on-page button AND the ?do=lock|unlock
+// shortcut both go through here, so a shortcut can never bypass a greyed button: refreshToggle is the
+// single authority for whether the control is actionable (link up, a real 55 71 lock state known, no
+// flash owning the link), and this refuses -- with the reason logged -- whenever it is disabled.
+function runToggle() {
+  refreshToggle();                       // make the button reflect the current state before reading it
+  const btn = $('btn-toggle');
+  if (!btn || btn.disabled) { log('toggle refused: ' + toggleReasonEn()); return; }
+  if (btn.dataset.action === 'unlock') unlock(); else lock();
+}
+
+// English reason for the transcript, mirroring the inline reason refreshToggle shows under the button.
+function toggleReasonEn() {
+  if (flashOwnsLink()) return 'a firmware flash owns the link';
+  if (!connected) return 'connect first';
+  return 'still reading the lock state (55 71)';
 }
 
 // Called on every 55 71. When a restore is armed (unlock happened, link dropped and came back),
@@ -852,20 +879,29 @@ function refreshFlashButtons() {
   if (pick) pick.disabled = !connected || busy;
   if (file) file.disabled = busy;
   if (!flash) return;
+  const reason = $('flash-reason');
   if (otaEngine) {
     flash.textContent = t('btnCancel');
     flash.dataset.act = 'cancel';
     flash.disabled = false;
+    setReason(reason, null);           // a run is on: the button is Cancel, no refusal to explain
     return;
   }
   flash.textContent = t('btnFlash');
   flash.dataset.act = 'flash';
   flash.disabled = !connected || !fwText;
+  // Say why Flash is greyed: no link yet, or no file chosen. The confirmation dialog is its own state.
+  setReason(reason, flashArmed ? null : !connected ? 'infoConnectFirst' : !fwText ? 'flashNeedFile' : null);
 }
 
 function setControlsForFlash(flashing) {
   FLASH_LOCK_IDS.forEach(id => { const el = $(id); if (el) el.disabled = flashing; });
-  if (!flashing) { refreshToggle(); refreshSettingsInputs(); refreshInfoButtons(); }
+  // Refresh in BOTH directions. On flash start these surface the "busyFlashing" reason and hold the
+  // disable (flashOwnsLink is already true via flashPending, so they gate off, not re-enable); on flash
+  // end they restore the real enabled/greyed state and clear the reason.
+  refreshToggle(); refreshSettingsInputs(); refreshInfoButtons();
+  // LED lives in led.js: keep its button + reason in step with the flash lock, both ways.
+  if (typeof ledRefreshButton === 'function') ledRefreshButton();
 }
 
 // Both the progress line and the result line are kept as values, so a language switch
@@ -1009,6 +1045,10 @@ function onFlashFinished(success, message, phase) {
 // ?do=unlock. On load we reconnect to the last granted scooter via getDevices(): no chooser, works
 // in Bluefy (iOS) and Chrome. Then the action runs once connected. getDevices()/auto-connect need no
 // fresh picker, but the scooter must be on and in range; otherwise the user just taps Connect.
+//
+// The shortcut is NOT a back door around the on-page toggle: it runs through runToggle, the exact
+// guarded path the button click takes, so it acts only while that control is enabled and never sends
+// a lock/unlock write behind a greyed button.
 
 let pendingDeepAction = null;     // 'lock' | 'unlock' parsed from the URL, run once after connect
 
@@ -1021,19 +1061,22 @@ function parseDeepLink() {
 }
 
 function maybeRunDeepAction() {
-  // A flash owns the link, so the shortcut waits: it runs on the first telemetry frame afterwards.
-  if (!pendingDeepAction || !connected || flashOwnsLink()) return;
-  if (pendingDeepAction === 'unlock') {
-    if (!deviceName) return;                 // need the FIN / BLE name first
-    pendingDeepAction = null;
-    log('shortcut: auto-unlock');
-    unlock();
-  } else if (pendingDeepAction === 'lock') {
-    if (!S.received71) return;               // lock needs a 55 71 first
-    pendingDeepAction = null;
-    log('shortcut: auto-lock');
-    lock();
+  if (!pendingDeepAction) return;
+  refreshToggle();                           // sync the control's gate before consulting it
+  const btn = $('btn-toggle');
+  // Same gate as the on-page toggle: while it is greyed (no link, lock state still reading, or a flash
+  // owns the link) the shortcut waits -- it is retried on the next confirmLink / 55 71 -- and never
+  // sends behind the disabled button.
+  if (!btn || btn.disabled) return;
+  const want = pendingDeepAction;            // 'lock' | 'unlock'
+  const can = btn.dataset.action;            // the direction the button currently offers
+  pendingDeepAction = null;
+  if (want !== can) {                        // already in the requested state -> a no-op, as the button is
+    log('shortcut: scooter already ' + (want === 'lock' ? 'locked' : 'unlocked') + ', ' + want + ' not needed');
+    return;
   }
+  log('shortcut: auto-' + want);
+  runToggle();                               // the guarded button path
 }
 
 // Reconnect to a previously paired scooter without showing the chooser (Web Bluetooth getDevices()).
@@ -1073,9 +1116,136 @@ function setStatus(s) {
   refreshFlashButtons();   // both flasher buttons need a link and every state change decides that
   refreshInfoButtons();    // the two info views need one as well
 }
-function log(m) {
-  const el = $('log'); if (!el) return;
-  el.textContent = ('[' + new Date().toLocaleTimeString() + '] ' + m + '\n') + el.textContent;
+// --------------------------- log panel ---------------------------
+//
+// Full bottom log panel, ported from lb-tool-web: timestamped lines appended oldest -> newest with
+// autoscroll, TX/RX frames in hex behind the Diag toggle, Copy / Clear / Save, and a Public-Log
+// anonymiser (default ON) that strips the FIN / device id / MAC / long hex before display or export.
+// The transcript body stays ENGLISH in both languages (ota.js writes into the same log; a mixed
+// transcript is worse). Only the labels / legend / buttons are translated.
+
+const LS_PUBLIC_LOG = 'tru_public_log';
+let logBuffer = [];              // { raw, cls } kept so a Public-Log toggle can re-render without loss
+let publicLog = true;            // anonymise on the way out; default ON, remembered on this device
+let diagLog = false;            // raw TX/RX hex; default OFF, per session, so a normal log stays readable
+
+function bytesToHex(b) {
+  return Array.from(b, x => (x & 0xFF).toString(16).padStart(2, '0').toUpperCase()).join(' ');
+}
+
+// Mask the values that identify a scooter or its owner. The space-separated hex frames survive this
+// (each byte is a 2-char token, below the long-hex threshold), which is why the frames stay readable.
+function redact(text) {
+  let s = String(text);
+  if (device && device.id) s = s.split(device.id).join('[id]');
+  if (deviceName && deviceName.length >= 3) s = s.split(deviceName).join('[fin]');
+  if (T.frameNum && T.frameNum.length >= 3) s = s.split(T.frameNum).join('[fin]');
+  s = s.replace(/\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g, '[mac]');   // MAC addresses
+  s = s.replace(/\b[0-9A-Fa-f]{16,}\b/g, '[hex]');                          // long hex runs (ids/keys)
+  return s;
+}
+function anonymize(s) { return publicLog ? redact(s) : String(s); }
+
+// One log line. cls colours it (log-tx / log-rx / log-ok / log-err); absent for a plain event line.
+function log(msg, cls) {
+  const ts = new Date().toISOString().slice(11, 19);       // HH:MM:SS
+  const raw = '[' + ts + '] ' + msg;                       // stored raw; anonymised only on the way out
+  logBuffer.push({ raw: raw, cls: cls || '' });
+  if (logBuffer.length > 2000) logBuffer.shift();          // bound the buffer over a long session
+  const pre = $('log');
+  if (pre) {
+    const span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = anonymize(raw) + '\n';
+    pre.appendChild(span);
+    pre.scrollTop = pre.scrollHeight;                      // autoscroll to the newest line
+  }
+}
+// TX/RX hex frames only when Diag is on, so a normal session is not buried in keep-alive frames.
+function logTx(frame, label) { if (diagLog) log('TX ' + bytesToHex(frame) + (label ? '  (' + label + ')' : ''), 'log-tx'); }
+function logRx(bytes) { if (diagLog) log('RX ' + bytesToHex(bytes), 'log-rx'); }
+
+// Re-render the whole pane after the Public-Log toggle flips (the raw buffer is unchanged).
+function renderLog() {
+  const pre = $('log');
+  if (!pre) return;
+  pre.textContent = '';
+  logBuffer.forEach(e => {
+    const span = document.createElement('span');
+    if (e.cls) span.className = e.cls;
+    span.textContent = anonymize(e.raw) + '\n';
+    pre.appendChild(span);
+  });
+  pre.scrollTop = pre.scrollHeight;
+}
+// Transcript stays English (see the log-panel note above): these status lines are English literals,
+// not t() lookups, so a copied/shared log is never a de/en mix.
+function clearLog() { logBuffer = []; const pre = $('log'); if (pre) pre.textContent = ''; log('log cleared'); }
+function copyLog() {
+  const text = logBuffer.map(e => anonymize(e.raw)).join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => log('log copied to clipboard', 'log-ok'), () => log('clipboard write failed', 'log-err'));
+  } else { log('clipboard API unavailable', 'log-err'); }
+}
+function saveLog() {
+  const text = logBuffer.map(e => anonymize(e.raw)).join('\n');
+  try {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'trfm-unlock-log.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    log('log saved to file', 'log-ok');
+  } catch (e) { log('save failed: ' + (e && e.message ? e.message : e), 'log-err'); }
+}
+
+// The two log toggles carry a help modal each, the same pattern as lb-tool-web. Bodies are our own
+// developer-authored i18n HTML.
+const HELP = {
+  publiclog: ['publicLogTitle', 'publicLogHelpHtml'],
+  diaglog: ['diagLogTitle', 'diagLogHelpHtml'],
+};
+function openHelp(key) {
+  const m = HELP[key];
+  if (!m) return;
+  $('help-title').textContent = t(m[0]);
+  $('help-body').innerHTML = t(m[1]);   // scan-ok: trusted developer-authored *Html i18n, no user data
+  const dlg = $('help');
+  if (dlg && dlg.showModal) dlg.showModal();
+}
+
+// Small helper for the "grey-out-with-reason" pattern: writes/clears the visible reason line under a
+// disabled control instead of hiding the reason in a title tooltip (invisible on touch devices).
+function setReason(el, key) {
+  if (!el) return;
+  if (key) { el.textContent = t(key); el.hidden = false; }
+  else { el.textContent = ''; el.hidden = true; }
+}
+
+function initLogPanel() {
+  try { publicLog = localStorage.getItem(LS_PUBLIC_LOG) !== 'off'; } catch (e) { publicLog = true; }
+  const pub = $('public-log');
+  if (pub) {
+    pub.checked = publicLog;
+    pub.addEventListener('change', () => {
+      publicLog = pub.checked;
+      try { localStorage.setItem(LS_PUBLIC_LOG, publicLog ? 'on' : 'off'); } catch (e) {}
+      renderLog();
+    });
+  }
+  const diag = $('diag-log');
+  if (diag) {
+    diag.checked = diagLog;
+    diag.addEventListener('change', () => { diagLog = diag.checked; log(diagLog ? 'diag log on' : 'diag log off', 'log-rx'); });
+  }
+  { const b = $('btn-copy-log'); if (b) b.addEventListener('click', copyLog); }
+  { const b = $('btn-clear-log'); if (b) b.addEventListener('click', clearLog); }
+  { const b = $('btn-save-log'); if (b) b.addEventListener('click', saveLog); }
+  document.querySelectorAll('.help-btn').forEach(b => {
+    b.addEventListener('click', () => openHelp(b.getAttribute('data-help')));
+  });
+  ['help-x', 'help-close'].forEach(id => { const b = $(id); if (b) b.addEventListener('click', () => { const d = $('help'); if (d) d.close(); }); });
 }
 // The single lock/unlock control reflects the current state: "Unlock" when the scooter is locked,
 // "Lock" when it is open. The state is driven ONLY by the real IVCU value streamed in 55 71 t[2]
@@ -1085,7 +1255,8 @@ function log(m) {
 function refreshToggle() {
   const btn = $('btn-toggle');
   if (!btn) return;
-  if (otaEngine) { btn.disabled = true; return; }   // a flash owns the link, no lock frames meanwhile
+  const reason = $('toggle-reason');
+  if (flashOwnsLink()) { btn.disabled = true; setReason(reason, 'busyFlashing'); return; }   // a flash owns the link (prep + run)
   const known = (T.lock === 'locked' || T.lock === 'unlocked');
   const locked = (T.lock === 'locked');
   // Without a link there is nothing being read, so the idle label stands in for the unknown state.
@@ -1093,15 +1264,61 @@ function refreshToggle() {
                           : (connected ? t('btnReading') : t('btnUnlock'));
   btn.dataset.action = locked ? 'unlock' : 'lock';
   btn.disabled = !linkConfirmed || !known;   // actionable only once a real 55 71 gave the state
+  // Make the refusal legible: say WHY it is greyed rather than only disabling it.
+  let rk = null;
+  if (!connected) rk = 'infoConnectFirst';
+  else if (!linkConfirmed || !known) rk = 'infoWaiting';   // no real 55 71 t[2] yet -> "reading..."
+  setReason(reason, rk);
 }
 function renderLive() {
-  $('t-wheel').textContent = S.received71 ? S.wheel.toFixed(1) : '-';
-  $('t-cruise').textContent = S.received71 ? (cruiseName(S.cruise) || S.cruise) : '-';
-  $('t-swver').textContent = T.swVer ? ('R' + T.swVer) : '-';
-  $('t-fwver').textContent = (T.fwBuild != null && T.fwBuild > 0) ? ('V' + T.fwBuild) : '-';
+  const unit = S.isUnitMile ? 'mph' : 'km/h';
+  const lockTxt = T.lock === 'locked' ? t('lockLocked') : T.lock === 'unlocked' ? t('lockUnlocked') : '-';
+  setTile('t-speed', T.have72 ? (T.speed.toFixed(1) + ' ' + unit) : '-');
+  setTile('t-lock', lockTxt);
+  setTile('t-wheel', S.received71 ? (S.wheel.toFixed(1) + '"') : '-');
+  setTile('t-cruise', S.received71 ? (cruiseName(S.cruise) || S.cruise) : '-');
+  setTile('t-gear', S.received71 ? String(S.gear) : '-');
+  setTile('t-swver', T.swVer ? ('R' + T.swVer) : '-');
+  setTile('t-fwver', (T.fwBuild != null && T.fwBuild > 0) ? ('V' + T.fwBuild) : '-');
+  renderAdvanced();
   refreshSettingsInputs();
   refreshToggle();
   refreshInfoButtons();
+  if (typeof ledRefreshButton === 'function') ledRefreshButton();   // LED lives in led.js
+}
+function setTile(id, text) { const el = $(id); if (el) el.textContent = text; }
+
+// Advanced telemetry: every remaining 55 71 field the app already parses, as read-only rows. These
+// are diagnostic rather than live-glanceable, so they sit in the collapsed advanced section. None is
+// editable: only wheel + cruise have a proven 0x18 write path, so the rest are shown, not written.
+function renderAdvanced() {
+  const host = $('adv-telemetry'), empty = $('adv-empty');
+  if (!host) return;
+  host.replaceChildren();
+  if (!S.received71) { if (empty) empty.hidden = false; return; }
+  if (empty) empty.hidden = true;
+  const onoff = b => t(b ? 'valOn' : 'valOff');
+  const rows = [
+    ['advSpeedLimit', String(S.speedLimit)],
+    ['advAssistLimit', String(S.assistSpeedLimit)],
+    ['advFrontCurrent', S.fCurrent + ' A'],
+    ['advRearCurrent', S.rCurrent + ' A'],
+    ['advFrontStart', String(S.fStartLevel)],
+    ['advRearStart', String(S.rStartLevel)],
+    ['advEabs', String(S.eabsLevel)],
+    ['advPackVolt', S.packVolt + ' V'],
+    ['advPolePairs', String(S.motorPolePairs)],
+    ['advProtTemp', S.sysProTemp + ' °C'],
+    ['advUnit', t(S.isUnitMile ? 'unitMile' : 'unitKm')],
+    ['advAbs', onoff(S.abs)],
+    ['advStartMode', onoff(S.startMode)],
+    ['advAntiTheft', onoff(S.atMode)],
+    ['advSmart', onoff(S.isSmart)],
+    ['advEco', onoff(S.enfEcon)],
+    ['advSleepTime', String(S.sleepTime)],
+    ['advProtTime', String(S.prTime)],
+  ];
+  rows.forEach(r => host.appendChild(batRow(r[0], r[1])));
 }
 function resetTiles() {                                 // no telemetry -> show "-"
   // Drop cached telemetry so a reconnect can NEVER show a pre-reboot lock state. Without this, T.lock
@@ -1110,17 +1327,21 @@ function resetTiles() {                                 // no telemetry -> show 
   T.lock = null;
   // Battery and fault data belongs to the link that streamed it: after a drop the two info views
   // show the placeholder again until the new link delivers its own frames.
-  T.have52 = false; T.have53 = false; T.cellMv = null; T.errors = null; T.ecu1 = null; T.ecu2 = null;
+  T.have52 = false; T.have53 = false; T.have72 = false;
+  T.cellMv = null; T.errors = null; T.ecu1 = null; T.ecu2 = null;
   S.received71 = false;
-  $('t-wheel').textContent = '-';
-  $('t-cruise').textContent = '-';
-  refreshToggle();
+  renderLive();   // every tile falls back to "-" and the advanced rows to their placeholder
 }
 // Wheel + cruise: editable only once the scooter reported its config (55 71). Prefilled ONCE with
 // the value the scooter delivers; after that the user edits freely (no per-frame overwrite).
 let settingsPrefilled = false;
 function refreshSettingsInputs() {
-  if (otaEngine) return;     // a running flash keeps these disabled until it reports finished
+  if (flashOwnsLink()) {     // a flash (prep + run) keeps these disabled until it reports finished
+    ['wheel-in', 'cruise-in', 'btn-set-wheel', 'btn-set-cruise'].forEach(id => { const el = $(id); if (el) el.disabled = true; });
+    setReason($('wheel-reason'), 'busyFlashing');
+    setReason($('cruise-reason'), 'busyFlashing');
+    return;
+  }
   const ready = connected && S.received71;
   const win = $('wheel-in'), cin = $('cruise-in'), bw = $('btn-set-wheel'), bc = $('btn-set-cruise');
   // Wheel size and cruise may only be changed while UNLOCKED: a locked (roadside-legal) scooter keeps
@@ -1130,6 +1351,10 @@ function refreshSettingsInputs() {
   const locked = ready && T.lock === 'locked';
   [win, bw].forEach(el => { if (el) { el.disabled = !ready || locked; el.title = locked ? t('tipWheelLocked') : ''; } });
   [cin, bc].forEach(el => { if (el) { el.disabled = !ready || locked; el.title = locked ? t('tipCruiseLocked') : ''; } });
+  // Make the refusal legible under each control instead of only in the title tooltip.
+  const base = !connected ? 'infoConnectFirst' : !S.received71 ? 'infoWaiting' : null;
+  setReason($('wheel-reason'), base || (locked ? 'tipWheelLocked' : null));
+  setReason($('cruise-reason'), base || (locked ? 'tipCruiseLocked' : null));
   if (ready && !settingsPrefilled) {
     if (win) win.value = S.wheel.toFixed(1);
     if (cin) cin.value = String(S.cruise);
@@ -1427,6 +1652,7 @@ function applyLang() {
   // Everything drawn from state has to be redrawn in the new language.
   renderFwVerdict();
   renderDlgFile();
+  setDevInfo();
   if (fwResult) renderFwResult(); else renderFwProgress();
   { const el = $('status'); setStatus(el ? el.dataset.state : 'disconnected'); }
   renderLive();
@@ -1696,7 +1922,8 @@ function wireDocViewer() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  log('tr-unlock build ' + BUILD);   // so a tester's log shows which deployed version they run
+  initLogPanel();                    // load the Public-Log preference + wire log controls before logging
+  log('trfm-unlock build ' + BUILD); // so a tester's log shows which deployed version they run
   initLangSwitch();
   initTheme();                       // before applyLang, so the first label is in the right language
   wireDocViewer();
@@ -1704,9 +1931,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-conn').addEventListener('click', () => {
     if ($('btn-conn').dataset.act === 'disconnect') disconnectBle(); else pickAndConnect();
   });
-  $('btn-toggle').addEventListener('click', () => {
-    if ($('btn-toggle').dataset.action === 'unlock') unlock(); else lock();
-  });
+  $('btn-toggle').addEventListener('click', () => runToggle());
   $('btn-set-wheel').addEventListener('click', () => {
     const v = parseFloat($('wheel-in').value);
     if (!isNaN(v) && v > 0) setWheel(v);

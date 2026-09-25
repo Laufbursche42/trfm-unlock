@@ -27,48 +27,10 @@ const LED_MODE_COLOR = 0;
 const LED_MODE_EFFECT = 1;
 const LED_MODE_MASTER = 10;
 
-// Animation names as the vendor app lists them. The index in this array plus one is the sub-byte.
-const LED_EFFECTS = [
-  'Auto Play', 'Magic Forward', 'Magic Back', '7-Color Energy', '7-Color Jump', 'R-G-B Jump',
-  'Y-C-P Jump', '7-Color Strobe', 'R-G-B Strobe', 'Y-C-P Strobe', '7-Color Gradual', 'R-Y Gradual',
-  'R-P Gradual', 'G-C Gradual', 'G-Y Gradual', 'B-P Gradual', 'Red Marquee', 'Green Marquee',
-  'Blue Marquee', 'Yellow Marquee', 'Cyan Marquee', 'Purple Marquee', 'White Marquee',
-  '7-Color Race', '7-Color Race Back', 'R-G-B Race', 'R-G-B Race Back', 'Y-C-P Race',
-  'Y-C-P Race Back', '7-Color Wave', '7-Color Wave Back', 'R-G-B Wave', 'R-G-B Wave Back',
-  'Y-C-P Wave', 'Y-C-P Wave Back', '7-Color Flush', '7-Color Flush Back', 'R-G-B Flush',
-  'R-G-B Flush Back', 'Y-C-P Flush', 'Y-C-P Flush Back', '7-Color Flush Close',
-  '7-Color Flush Open', 'R-G-B Flush Close', 'R-G-B Flush Open', 'Y-C-P Flush Close',
-  'Y-C-P Flush Open'
-];
-
-// The same list in German. The colour codes are spelled out where they are not universal: R-G-B is
-// read everywhere, Y-C-P is not.
-const LED_EFFECTS_DE = [
-  'Automatisch', 'Magisch vorwärts', 'Magisch rückwärts', '7 Farben Energie', '7 Farben Sprung',
-  'R-G-B Sprung', 'Gelb-Cyan-Violett Sprung', '7 Farben Stroboskop', 'R-G-B Stroboskop',
-  'Gelb-Cyan-Violett Stroboskop', '7 Farben Verlauf', 'Rot-Gelb Verlauf', 'Rot-Violett Verlauf',
-  'Grün-Cyan Verlauf', 'Grün-Gelb Verlauf', 'Blau-Violett Verlauf', 'Rotes Lauflicht',
-  'Grünes Lauflicht', 'Blaues Lauflicht', 'Gelbes Lauflicht', 'Cyanes Lauflicht',
-  'Violettes Lauflicht', 'Weißes Lauflicht', '7 Farben Jagd', '7 Farben Jagd rückwärts',
-  'R-G-B Jagd', 'R-G-B Jagd rückwärts', 'Gelb-Cyan-Violett Jagd',
-  'Gelb-Cyan-Violett Jagd rückwärts', '7 Farben Welle', '7 Farben Welle rückwärts', 'R-G-B Welle',
-  'R-G-B Welle rückwärts', 'Gelb-Cyan-Violett Welle', 'Gelb-Cyan-Violett Welle rückwärts',
-  '7 Farben Fluten', '7 Farben Fluten rückwärts', 'R-G-B Fluten', 'R-G-B Fluten rückwärts',
-  'Gelb-Cyan-Violett Fluten', 'Gelb-Cyan-Violett Fluten rückwärts', '7 Farben Fluten schließend',
-  '7 Farben Fluten öffnend', 'R-G-B Fluten schließend', 'R-G-B Fluten öffnend',
-  'Gelb-Cyan-Violett Fluten schließend', 'Gelb-Cyan-Violett Fluten öffnend'
-];
-
+// Animation names live in the i18n dictionary (key ledEffects, one array per language). The array
+// index plus one is the effect sub-byte.
 function ledEffectNames() {
-  return (typeof lang !== 'undefined' && lang === 'en') ? LED_EFFECTS : LED_EFFECTS_DE;
-}
-
-// The whole feature hides behind a URL switch while it is being tried out, so an ordinary visitor
-// never sees it. Query and hash are both read the same way the do= shortcut is. A stray & in
-// place of the ? is tolerated because that is an easy thing to mistype.
-function ledTestEnabled() {
-  const raw = (location.search + ' ' + location.hash).toLowerCase();
-  return /[?&#]test=led/.test(raw) || /(^|[?&#])test=led/.test(raw.trim());
+  return (typeof tList === 'function') ? tList('ledEffects') : [];
 }
 
 const LS_LED_WARN_UNTIL = 'tru_led_warn_until';   // epoch ms; the warning stays suppressed until then
@@ -109,7 +71,7 @@ function hexToRgb(hex) {
 // Without a link nothing is queued: a frame parked in the write queue would go out the moment a
 // scooter connects, long after the rider set it, which is worse than not sending it at all.
 function ledLinkReady() {
-  return connected && S.received71 && !otaEngine;
+  return connected && S.received71 && !flashOwnsLink();   // fenced off for the whole flash (prep + run)
 }
 function ledSend(frame) {
   if (!ledLinkReady()) return;
@@ -174,10 +136,24 @@ function ledPaintSlider(el) {
   el.style.setProperty('--pct', pct.toFixed(1) + '%');
 }
 
-function ledRefreshUi() {
+// Just the open button + its reason line. app.js calls this from renderLive on every state change, so
+// it must NOT touch the dialog controls (that would fight the brightness slider while it is dragged).
+function ledRefreshButton() {
   const ready = ledLinkReady();
   const open = $('btn-led');
   if (open) open.disabled = !ready;
+  if (typeof setReason === 'function') {
+    let rk = null;
+    if (flashOwnsLink()) rk = 'busyFlashing';
+    else if (!connected) rk = 'infoConnectFirst';
+    else if (!S.received71) rk = 'infoWaiting';
+    setReason($('led-reason'), rk);
+  }
+}
+
+function ledRefreshUi() {
+  const ready = ledLinkReady();
+  ledRefreshButton();
   const note = $('led-preview');
   if (note) note.hidden = ready;
   const live = $('led-live');
@@ -281,10 +257,8 @@ function ledOpen() {
 }
 
 function initLed() {
-  const card = document.getElementById('led-card');
-  if (!ledTestEnabled()) { if (card) card.hidden = true; return; }
-  if (card) card.hidden = false;
-
+  // Surfaced as a real feature in the Advanced section (no longer behind ?test=led). The road-legal
+  // consent gate (ledConfirmOn / #led-warn) still runs before the strips are first switched on.
   const open = $('btn-led');
   if (open) open.addEventListener('click', ledOpen);
 

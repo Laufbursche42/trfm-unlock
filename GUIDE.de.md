@@ -24,11 +24,15 @@ Alles passiert im Browser über Web Bluetooth: verbinden, Firmware flashen, ents
 3. Tippe auf **Connect** und wähle deinen Scooter in der Auswahl des Browsers. In dieser Liste erscheinen nur Scooter.
 4. Beobachte die Statusanzeige oben rechts: `connecting`, dann `linking`, dann `connected`. `connected` erscheint erst, wenn echte Telemetrie ankommt. Es heißt also, dass die Verbindung Daten trägt, nicht nur, dass der Funk sich einig war.
 
-Danach füllen sich die Kacheln:
+Danach füllen sich die **Telemetrie**-Kacheln, alle live vom Scooter gelesen:
 
-- **Wheel** und **Cruise**: was im Controller aktuell steht.
+- **Speed** und **Gear**, der **Lock**-Zustand, **Wheel** und **Cruise**: was im Controller aktuell steht.
 - **Firmware version**: die Version, die der Controller meldet, auf der Serienfirmware `R5.4.19`.
 - **Laufbursche Version**: die Build-Nummer einer Laufbursche-Firmware, zum Beispiel `V44`. Auf einer Serienfirmware bleibt hier `-` stehen.
+
+Zwei Buttons öffnen reine Ansichts-Fenster: **Fehlerberichte** (aktive Fehler und Warnungen) und **Batterie-Infos** (Zustand, Übersicht und Einzelzellspannungen). Alles, was der Controller meldet, aber auf der Hauptansicht nicht braucht, steht nur zum Ansehen im aufklappbaren Bereich **Erweiterte Einstellungen** (siehe Abschnitt 9).
+
+Ein Wert, den der Scooter noch nicht gesendet hat, zeigt `-` statt einer erfundenen `0`.
 
 Kommt nichts an, meldet die Seite `no-data` und hält die Verbindung offen. Der Scooter war dann außer Reichweite oder im Schlaf: aufwecken, dann bleibt die Anzeige von allein stehen. Ein Scooter, der nach einem abgebrochenen Flash im Update-Modus steht, sendet ebenfalls keine Telemetrie. Genau deshalb bleibt die Verbindung stehen: der neue Flash läuft über dieselbe Verbindung. Das allererste Verbinden braucht immer die Auswahl des Browsers. Das ist eine Sicherheitsregel des Browsers, die keine Verknüpfung überspringen kann.
 
@@ -75,7 +79,7 @@ Sonst baust du sie dir mit dem [Laufbursche Firmware Patcher](https://laufbursch
 
 Der Balken zeigt die Prozente und welches Paket von wie vielen unterwegs ist. Die Zeile darunter nennt den Schritt, in dem der Flasher steckt.
 
-Das Log ist die ausführliche Mitschrift, die neueste Zeile oben. Ein gesunder Lauf sieht so aus, hier von alt nach neu:
+Das **Log** ganz unten auf der Seite ist die ausführliche Mitschrift, die älteste Zeile zuerst und die neueste unten, und es scrollt automatisch mit. Ein gesunder Lauf sieht so aus:
 
 ```
 Ready for upgrade
@@ -138,9 +142,31 @@ Beides sitzt im Bereich **Settings**. Es wird bedienbar, sobald der Scooter sein
 
 Beide Werte liegen in diesem Browser auf diesem Gerät und werden nach einem Entsperren automatisch zurückgeschrieben. Nichts davon wird irgendwohin hochgeladen.
 
+Jedes gesperrte Bedienelement sagt dir in einer Zeile direkt darunter, **warum** es ausgegraut ist: `Verbinde zuerst den Scooter`, `Warte auf Daten vom Scooter ...`, `Entsperre den Scooter, um ... zu ändern` oder `Während des Flashens gesperrt`. Ein ausgegrauter Button ist damit nie ein Rätsel.
+
 ---
 
-## 9. Verknüpfung auf dem Startbildschirm
+## 9. Erweiterte Einstellungen und LED
+
+Klapp den Bereich **Erweiterte Einstellungen** auf, um alles Übrige zu sehen, was der Controller in seinem Konfigurations-Frame meldet, nur zum Ansehen: die rohen Geschwindigkeits- und Assistenzgrenzen, die Stromgrenzen vorne und hinten, Anfahr- und eABS-Stufen, die Pack-Spannung, die Motor-Polpaare, die Schutztemperatur, die Einheit (km/Meilen) sowie die Schalter ABS / Anfahrmodus / Diebstahlschutz / Smart / Eco und die Ruhe- und Schutzzeiten. Das steht dort, damit du den vollen Zustand ablesen kannst; schreibbar sind in diesem Tool nur Rad und Tempomat, weil nur für diese Felder der Rückschreib-Pfad abgesichert ist. Der Rest wird bewusst nicht editierbar gemacht, statt einen Wert zu riskieren, den der Controller blind übernimmt.
+
+Im selben Bereich sitzt die **LED-Beleuchtung** für die RGB-Streifen des Scooters: ein Hauptschalter, Helligkeit, eine Farbe und eine Liste von Effekten. Bevor die Streifen zum ersten Mal eingeschaltet werden, bestätigst du einen Hinweis zur Straßenzulassung: **in Deutschland sind solche Zusatz-LED während der Fahrt im öffentlichen Verkehr nicht zulässig.** Die Helligkeit hängt mit Blinkern und Bremslicht zusammen, dimmst du die Streifen, werden die mitgedimmt; beim Ausschalten setzt die Seite die Helligkeit deshalb wieder auf 100. Der Scooter meldet seinen LED-Zustand nicht zurück, du siehst hier also, was die Seite zuletzt kommandiert hat.
+
+---
+
+## 10. Das Log-Fenster
+
+Die **Protokoll**-Karte ganz unten auf der Seite ist die laufende Mitschrift dessen, was das Tool tut. Jede Zeile trägt einen Zeitstempel; die neueste steht unten und die Ansicht scrollt mit.
+
+- **Log anonymisieren zum öffentlichen Teilen** (Standard an): maskiert die FIN / den Bluetooth-Namen, die Geräte-ID und lange Hex-Ketten, bevor das Log angezeigt, kopiert oder gespeichert wird, damit du es zur Fehlersuche posten kannst, ohne die Identität deines Scooters preiszugeben. Nur ausschalten, wenn du die volle Mitschrift lokal brauchst, und sie dann nicht teilen.
+- **Diagnose-Log** (aus): zeichnet zusätzlich jedes rohe Frame in beide Richtungen als Hex auf - `TX` gesendet, `RX` empfangen. Für die tiefe Fehlersuche; im Normalbetrieb bleibt es aus, damit das Log lesbar bleibt.
+- **Kopieren**, **Leeren** und **Als .txt speichern** tun, was sie sagen. Kopieren und Speichern nutzen denselben anonymisierten Text wie das Log auf dem Bildschirm.
+
+Die Mitschrift selbst ist immer englisch, in beiden Oberflächensprachen, damit ein geteiltes Log nie ein Mix ist.
+
+---
+
+## 11. Verknüpfung auf dem Startbildschirm
 
 Eine Verknüpfung öffnet die Seite bereits auf Sperren oder Entsperren gestellt: ein gekoppelter Scooter verbindet sich ohne Auswahl und die Aktion läuft von selbst. Mach eine Verknüpfung für **Unlock** und eine für **Lock**.
 
@@ -158,7 +184,7 @@ Der Scooter muss an und in Reichweite sein. Der allererste Besuch braucht weiter
 
 ---
 
-## 10. Grenzen, die man kennen sollte
+## 12. Grenzen, die man kennen sollte
 
 - **Kein Hintergrundbetrieb.** Die Verbindung lebt nur, solange die Seite offen und im Vordergrund ist.
 - **Wiederverbinden nur in der laufenden Sitzung.** Bricht die Funkstrecke ab, während die Seite offen und im Vordergrund ist, verbindet sie von selbst neu. Nach dem Schließen der Seite ist die Verbindung weg und du musst wieder **Connect** drücken. Nur eine Verknüpfung mit `?do=lock` oder `?do=unlock` verbindet beim Öffnen ohne Auswahl neu.
@@ -167,6 +193,6 @@ Der Scooter muss an und in Reichweite sein. Der allererste Besuch braucht weiter
 
 ---
 
-## 11. Recht
+## 13. Recht
 
 Lies den [Haftungsausschluss](README.md#disclaimer) vollständig, bevor du irgendetwas flashst. Kurz gefasst: eine gepatchte Firmware beendet die Betriebserlaubnis und den Versicherungsschutz, der Scooter gehört damit auf Privatgelände. Ein abgebrochener Flash hinterlässt einen Scooter, der nicht fährt, bis ein Flash durchläuft. Alles, was du hier tust, tust du auf eigenes Risiko.

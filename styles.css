@@ -7,6 +7,7 @@
   --muted: #8A93A8; --accent: #B8F020; --value: #BCEB39; --good: #1EE89A; --bad: #FF5050;
   --warn: #FFAA18; --gps: #3DB8FF; --mono: ui-monospace, Consolas, monospace;
   --scroll: #2B3350; --field: #0d1018; --chip: #171b2a; --on-accent: #0A0C10;
+  --tx: #6cb6ff; --rx: #e0b25a;   /* log frame directions: TX sent, RX received */
   color-scheme: dark;   /* native controls, scrollbars and the colour well follow the theme */
   /* Tinted boxes and their emphasis text. The 8-digit values are one hue at 8 % and 25 % opacity,
      which is why they carry through both themes without a second set. */
@@ -23,6 +24,7 @@
   --accent: #2A6A00; --value: #2A6A00; --good: #1B7A4B; --bad: #CC2020;
   --warn: #A05800; --gps: #005AA0;
   --scroll: #B6C0D4; --field: #FFFFFF; --chip: #F1F4FA; --on-accent: #FFFFFF;
+  --tx: #0b6bcb; --rx: #8a5a00;
   color-scheme: light;
   /* The tinted boxes keep their hue; only the emphasis text darkens enough to read on white. */
   --warn-strong: #7A4300; --bad-strong: #A01818;
@@ -124,8 +126,37 @@ label { color: var(--label); font-size: 12px; text-transform: uppercase; letter-
 .sunset-banner b { color: var(--bad-strong); }
 .sunset-banner a { color: var(--bad-strong); text-decoration: underline; }
 pre#log { margin: 0; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
-  font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-height: 150px; overflow: auto;
-  white-space: pre-wrap; overscroll-behavior: contain; }
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-height: 240px; overflow: auto;
+  white-space: pre-wrap; word-break: break-word; overscroll-behavior: contain; }
+/* Log line colours: TX/RX frame directions plus the ok/error status lines the copy/save/clear emit. */
+.log-tx { color: var(--tx); }
+.log-rx { color: var(--rx); }
+.log-ok { color: var(--good); }
+.log-err { color: var(--bad); }
+/* Public/Diagnostic log toggles: label | checkbox | help button on one row. */
+.log-opts { display: flex; flex-direction: column; gap: 6px; }
+.log-opt { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 5px; margin: 0;
+  color: var(--label); font-size: 12px; }
+.log-opt .help-btn { margin: 0 5px; }
+.log-opt input[type="checkbox"] { -webkit-appearance: checkbox; appearance: auto; width: 16px; height: 16px;
+  margin: 0; padding: 0; border: 0; border-radius: 0; background: none; flex: none; }
+.help-btn { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; padding: 0; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer;
+  font-weight: 700; line-height: 1; font-size: 12px; }
+.help-btn:hover { color: var(--accent); border-color: var(--accent); }
+/* Inline reason under a disabled control: says why it is greyed instead of hiding it in a tooltip. */
+.reason { color: var(--warn); }
+/* Collapsible advanced section (details/summary), same shape as lb-tool-web. */
+details.card > summary { list-style: none; cursor: pointer; display: flex; align-items: center;
+  gap: 8px; margin: 0; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary h2 { flex: 1 1 auto; }
+details.card > summary .chev { flex: 0 0 auto; color: var(--muted); font-size: 12px;
+  transition: transform .15s; }
+details.card[open] > summary .chev { transform: rotate(90deg); }
+details.card[open] > summary { margin-bottom: 12px; }
+details.card > .sect-body { display: flex; flex-direction: column; gap: 12px; }
+#adv-telemetry { display: flex; flex-direction: column; gap: 7px; }
 /* Links on one line, the build stamp centred on the line beneath. The links may still wrap on a
    very narrow phone rather than run off the edge. */
 .foot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 2px; }
@@ -190,16 +221,16 @@ dialog::backdrop { background: var(--backdrop); }
 /* Document viewer. Only the open dialog is a flex column: a display value on the
    closed one would beat the browser's display:none and drop it into the page. */
 /* Every scrolling dialog shares one shell; only the width differs. */
-#doc, #led, #err, #bat { max-height: 88vh; overflow: hidden; }
+#doc, #led, #err, #bat, #help { max-height: 88vh; overflow: hidden; }
 #doc { max-width: 44rem; }
-#led, #err, #bat { max-width: 30rem; }
-#doc[open], #led[open], #err[open], #bat[open] { display: flex; flex-direction: column; }
+#led, #err, #bat, #help { max-width: 30rem; }
+#doc[open], #led[open], #err[open], #bat[open], #help[open] { display: flex; flex-direction: column; }
 .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .doc-head h3 { margin: 0; font-size: 15px; color: var(--text); }
-#doc-x, #led-close, #err-close, #bat-close { flex: 0 0 auto; background: none; border: 0;
+#doc-x, #led-close, #err-close, #bat-close, #help-x { flex: 0 0 auto; background: none; border: 0;
   color: var(--label); font-size: 22px; line-height: 1; padding: 0 4px; }
-#doc-x:hover, #led-close:hover, #err-close:hover, #bat-close:hover { color: var(--accent); }
+#doc-x:hover, #led-close:hover, #err-close:hover, #bat-close:hover, #help-x:hover { color: var(--accent); }
 .doc-body { padding: 14px 16px; overflow-y: auto; overscroll-behavior: contain;
   color: var(--label); font-size: 13.5px; }
 .doc-body > :first-child { margin-top: 0; }

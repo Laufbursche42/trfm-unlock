@@ -31,7 +31,10 @@ Then open the printed address in a browser that supports Web Bluetooth.
 - **Unlock and lock live** over Bluetooth. A direct command to the controller, unrelated to the FIN or the Bluetooth name.
 - **Flash firmware over Bluetooth**, in the browser, in about seven minutes. Every check on the file runs before the first byte leaves.
 - **Wheel diameter and cruise**, stored on your device and written back automatically after an unlock.
-- **Read what the controller reports:** its firmware version plus the build stamp of a Laufbursche firmware.
+- **Full live telemetry**, read-only: speed, lock state, gear, wheel, cruise, firmware version and the build stamp of a Laufbursche firmware, plus error reports and battery info (per-cell voltages, health, temperatures).
+- **Advanced settings** section (collapsed): every remaining value the controller reports in its config frame, read-only. Only wheel and cruise are writable here by design; the write-back path is not proven for the other fields, so they are shown but not made editable.
+- **LED lighting**: colour, brightness and animations for the scooter's RGB strips, behind a one-time road-legal consent. In Germany these extra LEDs are not permitted while riding in public traffic.
+- **A full log panel** at the bottom: timestamped lines, a Diagnostic toggle that adds raw TX/RX frames in hex, and Copy / Clear / Save. A Public-Log switch (on by default) anonymises the FIN, the device id and long hex before you copy or share it.
 - **Home-screen shortcuts** that open the page already set to lock or unlock.
 
 Hardware: the **IVCU hardware version 5.x** controller. Not the "Ali box".
