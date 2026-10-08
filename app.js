@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v75';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v76';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -204,6 +204,42 @@ function writeWheelCruiseAllGears() {
                             S.assistSpeedLimit, S.fCurrent, S.rCurrent));
 }
 
+// --------------------------- load-time protocol self-test ---------------------------
+//
+// Mirrors inokim's FRAME_OK: a const evaluated once at load that (a) checks the frame builders
+// against KNOWN-GOOD byte vectors, and (b) re-validates every built frame through this page's own
+// CRC-8 exactly the way onNotify accepts one (crc8(f,19) === f[19]). A real relationship between
+// independent sources, never a tautology.
+// Known vectors (copied from the source, not guessed):
+//  - connect code: the native app's sendConnectCode builds [170,1,16,e,255..255]
+//    (app-service.beauty.js:1705-1707). With e=0 (the 6.5 s keep-alive) that is AA 01 10 00 FF*15;
+//    the CRC-8 trailer (poly 0x07, init 0, MSB-first, no reflection) is 0x50. This is byte-for-byte
+//    what connectCode(0) must emit, cross-checking our port against the native builder.
+//  - lock command 0x1B: the protocol comment on setLockState above documents AA 1B 01 00*16;
+//    its CRC-8 trailer is 0x10.
+const FRAME_OK = (function () {
+  const eq = (a, b) => a.length === b.length && Array.prototype.every.call(a, (v, i) => (v & 0xFF) === (b[i] & 0xFF));
+  // a 20-byte frame is accepted exactly as onNotify accepts one: last byte = CRC-8 over [0..18].
+  const crcOk = f => f.length === 20 && crc8(f, 19) === (f[19] & 0xFF);
+  // KNOWN-VECTOR: the native keep-alive connect frame, byte-for-byte.
+  const connectVec = [0xAA, 0x01, 0x10, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x50];
+  const kvConnect = eq(connectCode(0), connectVec);
+  // KNOWN-VECTOR: the 0x1B lock frame documented in the setLockState comment above.
+  const lockVec = [0xAA, 0x1B, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10];
+  const kvLock = eq(setLockState(true), lockVec);
+  // ROUND-TRIP: each builder's output must re-validate through the page's own CRC-8.
+  const rtConnect = crcOk(connectCode(0));
+  const rtLock = crcOk(setLockState(false));
+  const f18 = buildSettingFrame(2, S.gear, S.eabsLevel, S.fStartLevel, S.rStartLevel,
+                                S.assistSpeedLimit, S.fCurrent, S.rCurrent);
+  const rtSetting = crcOk(f18) && (f18[0] & 0xFF) === 0xAA && (f18[1] & 0xFF) === 0x18;
+  return kvConnect && kvLock && rtConnect && rtLock && rtSetting;
+})();
+// Surface a broken port on load, the way inokim flags a failed self-test.
+if (!FRAME_OK) { try { console.error('trfm-unlock: protocol self-test FAILED - frame builder/CRC mismatch'); } catch (e) {} }
+
 // --------------------------- telemetry parse (subset of FrameParser.java) ---------------------------
 
 const ERROR_COUNT = 17;     // 55 54 t[2..18], one severity byte per error type
@@ -215,11 +251,17 @@ const T = {
   // whether that frame has been seen at all, so a view can show the page placeholder instead of a
   // zero the scooter never sent.
   have52: false, have53: false, current: 0, soh: 0, maxCellTemp: 0, minCellTemp: 0,
+  poleVolt: 0,     // 55 52 t[4..5] string/pole voltage
   capacity: 0, chargeCounter: 0, cellCount: 0, maxCellV: 0, minCellV: 0, balance: 0,
   cellMv: null, errors: null,
   // Controller status bytes 55 72 t[10] / t[11]: the fault bits behind the error report.
   ecu1: null, ecu2: null,
   have72: false,   // a 55 72 has arrived, so the speed reading is real and not a start-up 0
+  // 55 72 motor telemetry: per-motor current (u16 *0.1 A) and temperature (u8 degC, valid > 0).
+  fMotorCurrent: 0, rMotorCurrent: 0, fMotorTemp: 0, rMotorTemp: 0, doubleMotor: false,
+  // 55 73 ride data + feature flags.
+  have73: false, avgSpeed: 0, maxSpeed: 0, trip: 0, odometer: 0, energyFb: 0,
+  atLevel: 0, batLock: false, gpsLock: false, powerMode: false, lightSensor: false, voice: false,
 };
 
 function u16(t, i) { return ((t[i] & 0xFF) << 8) | (t[i + 1] & 0xFF); }
@@ -293,6 +335,12 @@ function dispatch(t) {
     case 0x72: {
       T.ecu1 = t[10] & 0xFF;         // rear ECU status bytes, the fault bits of the error report
       T.ecu2 = t[11] & 0xFF;
+      // Motor currents/temps, exactly as the app decodes them (app-service.js:11334-11338).
+      T.fMotorCurrent = u16(t, 4) * 0.1;        // 55 72 t[4..5] u16 *0.1 A
+      T.rMotorCurrent = u16(t, 12) * 0.1;       // 55 72 t[12..13] u16 *0.1 A
+      T.fMotorTemp = t[9] & 0xFF;               // 55 72 t[9] u8 degC, valid only when > 0
+      T.rMotorTemp = t[17] & 0xFF;              // 55 72 t[17] u8 degC, valid only when > 0
+      T.doubleMotor = ((t[3] >> 3) & 1) === 1;  // 55 72 t[3].3, read-only (power calc only, not the write state)
       T.speedRaw = u16(t, 15);
       let v = 0;
       if (T.speedRaw > 0) v = 287.0 * S.wheel / T.speedRaw;
@@ -302,11 +350,32 @@ function dispatch(t) {
       T.have72 = true;
       break;
     }
+    case 0x73: {
+      // 55 73 ride data + feature flags, big-endian u16 (app-service.js:11383-11408).
+      T.avgSpeed = u16(t, 2) * 0.1;             // t[2..3] km/h
+      T.maxSpeed = u16(t, 4) * 0.1;             // t[4..5] km/h
+      T.trip = u16(t, 6) * 0.1;                 // t[6..7] single-trip distance, km
+      T.odometer = ((t[8] & 0xFF) << 16) | ((t[9] & 0xFF) << 8) | (t[10] & 0xFF);  // t[8..10] u24 total, km
+      T.energyFb = u16(t, 11) * 0.1;            // t[11..12] energy feedback / recuperation
+      const st2 = t[16] & 0xFF;                 // t[16] bits: batLock .0, gpsLock .1
+      T.batLock = (st2 & 0x01) !== 0;
+      T.gpsLock = (st2 & 0x02) !== 0;
+      if ((t[18] & 0xFF) !== 0xFF) {            // t[18] feature bits, read only when not 0xFF (as the app guards)
+        const st3 = t[18] & 0xFF;
+        T.powerMode = (st3 & 0x08) !== 0;       // bit3
+        T.lightSensor = (st3 & 0x10) !== 0;     // bit4
+        T.voice = (st3 & 0x20) !== 0;           // bit5
+        T.atLevel = (st3 >> 6) & 0x03;          // bits7,6 -> (bit7<<1)|bit6
+      }
+      T.have73 = true;
+      break;
+    }
     case 0x51: parseCells(t, 0); break;      // cells 1-8
     case 0x55: parseCells(t, 8); break;      // cells 9-16
     case 0x56: parseCells(t, 16); break;     // cells 17-24
     case 0x52:
       T.volt = u16(t, 2) * 0.1;
+      T.poleVolt = u16(t, 4) * 0.1;          // 55 52 t[4..5] string/pole voltage (app-service.js:11236)
       T.current = u16(t, 6) * 0.1 - 1000;    // below zero the pack is taking charge back in
       T.soc = t[8] & 0xFF;
       T.soh = t[9] & 0xFF;
@@ -1103,8 +1172,14 @@ async function tryAutoReconnect() {
 // --------------------------- UI ---------------------------
 
 function $(id) { return document.getElementById(id); }
+// Map the raw link state to its translated badge label; unmapped link states (no-data, no-char)
+// keep their raw wording since they have no canonical i18n key.
+function statusLabel(s) {
+  const map = { disconnected: 'stDisconnected', connecting: 'stConnecting', linking: 'stLinking', connected: 'stConnected', 'no-service': 'stNoService' };
+  return map[s] ? (t(map[s]) || s) : s;
+}
 function setStatus(s) {
-  const el = $('status'); if (el) { el.textContent = s; el.dataset.state = s; }
+  const el = $('status'); if (el) { el.textContent = statusLabel(s); el.dataset.state = s; }
   // Single Connect/Disconnect control: reads "Disconnect" while connected or connecting, "Connect" otherwise.
   const cb = $('btn-conn');
   if (cb) {
@@ -1112,6 +1187,13 @@ function setStatus(s) {
     const on = (s === 'connecting' || s === 'linking' || s === 'connected' || s === 'no-data');
     cb.textContent = on ? t('btnDisconnect') : t('btnConnect');
     cb.dataset.act = on ? 'disconnect' : 'connect';
+  }
+  // Uniform shell: the telemetry/settings cards stay hidden until there is a link, so the page
+  // loads with the same picture everywhere (only Intro + Verbindung + Log). Purely a visibility
+  // toggle on the four canonical cards; no protocol state is touched here.
+  {
+    const show = (s === 'connecting' || s === 'linking' || s === 'connected' || s === 'no-data');
+    ['live-card', 'batt-card', 'more-card', 'raw-card'].forEach(id => { const c = $(id); if (c) c.hidden = !show; });
   }
   refreshFlashButtons();   // both flasher buttons need a link and every state change decides that
   refreshInfoButtons();    // the two info views need one as well
@@ -1148,7 +1230,7 @@ function anonymize(s) { return publicLog ? redact(s) : String(s); }
 
 // One log line. cls colours it (log-tx / log-rx / log-ok / log-err); absent for a plain event line.
 function log(msg, cls) {
-  const ts = new Date().toISOString().slice(11, 19);       // HH:MM:SS
+  const ts = new Date().toTimeString().slice(0, 8);        // local HH:MM:SS
   const raw = '[' + ts + '] ' + msg;                       // stored raw; anonymised only on the way out
   logBuffer.push({ raw: raw, cls: cls || '' });
   if (logBuffer.length > 2000) logBuffer.shift();          // bound the buffer over a long session
@@ -1165,6 +1247,20 @@ function log(msg, cls) {
 function logTx(frame, label) { if (diagLog) log('TX ' + bytesToHex(frame) + (label ? '  (' + label + ')' : ''), 'log-tx'); }
 function logRx(bytes) { if (diagLog) log('RX ' + bytesToHex(bytes), 'log-rx'); }
 
+// On-load diagnostic header: one informative block so a tester's copied log reveals the build and the
+// browser's BLE support at a glance, the same header inokim/ap print. The self-test line reports
+// FRAME_OK, the load-time check that the frame builders still match their known-good vectors and CRC.
+function logDiagnosticHeader() {
+  log('=== trfm-unlock diagnostic ===');
+  log('build: ' + BUILD);
+  log('time: ' + new Date().toISOString());
+  log('userAgent: ' + (navigator.userAgent || '?'));
+  log('platform: ' + (navigator.platform || '?'));
+  log('webBluetooth: ' + (navigator.bluetooth ? 'yes' : 'no'));
+  log('protocol self-test: ' + (FRAME_OK ? 'OK' : 'FAILED'));
+  log('================================');
+}
+
 // Re-render the whole pane after the Public-Log toggle flips (the raw buffer is unchanged).
 function renderLog() {
   const pre = $('log');
@@ -1180,7 +1276,7 @@ function renderLog() {
 }
 // Transcript stays English (see the log-panel note above): these status lines are English literals,
 // not t() lookups, so a copied/shared log is never a de/en mix.
-function clearLog() { logBuffer = []; const pre = $('log'); if (pre) pre.textContent = ''; log('log cleared'); }
+function clearLog() { logBuffer = []; const pre = $('log'); if (pre) pre.textContent = ''; log('log cleared'); logDiagnosticHeader(); }
 function copyLog() {
   const text = logBuffer.map(e => anonymize(e.raw)).join('\n');
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1319,6 +1415,35 @@ function renderAdvanced() {
     ['advProtTime', String(S.prTime)],
   ];
   rows.forEach(r => host.appendChild(batRow(r[0], r[1])));
+  // 55 72 motor telemetry (read-only), once a 55 72 has been seen. Temps are shown only when > 0,
+  // exactly as the app treats them (a 0 reading means "no sensor value", not 0 degrees).
+  if (T.have72) {
+    host.appendChild(batRow('advMotorCurrentR', T.rMotorCurrent.toFixed(1) + ' A'));
+    host.appendChild(batRow('advMotorCurrentF', T.fMotorCurrent.toFixed(1) + ' A'));
+    if (T.rMotorTemp > 0) host.appendChild(batRow('advMotorTempR', T.rMotorTemp + ' °C'));
+    if (T.fMotorTemp > 0) host.appendChild(batRow('advMotorTempF', T.fMotorTemp + ' °C'));
+    // Output power, the app's own derived value: current(s) * live pack voltage (55 52) / 1000.
+    if (T.have52) {
+      const amps = T.doubleMotor ? (T.rMotorCurrent + T.fMotorCurrent) : T.rMotorCurrent;
+      host.appendChild(batRow('advPower', (amps * T.volt / 1000).toFixed(2) + ' kW'));
+    }
+  }
+  // 55 73 ride data + feature flags (read-only), once a 55 73 has been seen.
+  if (T.have73) {
+    const dist = km => S.isUnitMile ? (km * 0.6213712).toFixed(1) + ' mi' : km.toFixed(1) + ' km';
+    const spd = kmh => S.isUnitMile ? (kmh * 0.6213712).toFixed(1) + ' mph' : kmh.toFixed(1) + ' km/h';
+    host.appendChild(batRow('advOdometer', dist(T.odometer)));
+    host.appendChild(batRow('advTrip', dist(T.trip)));
+    host.appendChild(batRow('advMaxSpeed', spd(T.maxSpeed)));
+    host.appendChild(batRow('advAvgSpeed', spd(T.avgSpeed)));
+    host.appendChild(batRow('advEnergyFb', T.energyFb.toFixed(1)));
+    host.appendChild(batRow('advAtLevel', String(T.atLevel)));
+    host.appendChild(batRow('advBatLock', onoff(T.batLock)));
+    host.appendChild(batRow('advGpsLock', onoff(T.gpsLock)));
+    host.appendChild(batRow('advPowerMode', onoff(T.powerMode)));
+    host.appendChild(batRow('advLightSensor', onoff(T.lightSensor)));
+    host.appendChild(batRow('advVoice', onoff(T.voice)));
+  }
 }
 function resetTiles() {                                 // no telemetry -> show "-"
   // Drop cached telemetry so a reconnect can NEVER show a pre-reboot lock state. Without this, T.lock
@@ -1327,7 +1452,7 @@ function resetTiles() {                                 // no telemetry -> show 
   T.lock = null;
   // Battery and fault data belongs to the link that streamed it: after a drop the two info views
   // show the placeholder again until the new link delivers its own frames.
-  T.have52 = false; T.have53 = false; T.have72 = false;
+  T.have52 = false; T.have53 = false; T.have72 = false; T.have73 = false;
   T.cellMv = null; T.errors = null; T.ecu1 = null; T.ecu2 = null;
   S.received71 = false;
   renderLive();   // every tile falls back to "-" and the advanced rows to their placeholder
@@ -1480,6 +1605,7 @@ function batteryRows() {
   const cellV = mv => T.have53 ? ((mv / 1000).toFixed(3) + ' V') : dash;
   return [
     batRow('batVolt', v52(T.volt, 'V', 1)),
+    batRow('batPoleVolt', v52(T.poleVolt, 'V', 1)),
     batRow('batCurrent', v52(T.current, 'A', 1)),
     batRow('batSoc', T.have52 ? (T.soc + ' %') : dash),
     batRow('batSoh', T.have52 ? (T.soh + ' %') : dash),
@@ -1668,7 +1794,7 @@ function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   const b = $('btn-theme');
   if (b) {
-    b.innerHTML = dark ? '&#9728;' : '&#9790;';   // scan-ok: a fixed character, not user input
+    b.textContent = dark ? '\u2600' : '\u263E';
     b.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark'));
     b.title = b.getAttribute('aria-label');
   }
@@ -1896,6 +2022,18 @@ function wireDocViewer() {
   // Delegated: the guide link inside a translated hint is rebuilt on every switch.
   document.addEventListener('click', e => {
     if (!e.target.closest) return;
+    // An intro/markdown link like <a href="#DISCLAIMER"> opens the matching doc. DISCLAIMER has no
+    // .md file here (it is built from discPoints), so it routes to openDisclaimer(), the rest to openDoc.
+    const href = e.target.closest('a[href]');
+    if (href) {
+      const m = (href.getAttribute('href') || '').match(/^#(DISCLAIMER|LICENSE|PRIVACY|TRADEMARKS|GUIDE|README|CHANGELOG)$/i);
+      if (m) {
+        e.preventDefault();
+        const name = m[1].toUpperCase();
+        if (name === 'DISCLAIMER') openDisclaimer(); else openDoc(name);
+        return;
+      }
+    }
     const jump = e.target.closest('[data-anchor]');
     if (jump) {
       e.preventDefault();
@@ -1923,7 +2061,7 @@ function wireDocViewer() {
 
 window.addEventListener('DOMContentLoaded', () => {
   initLogPanel();                    // load the Public-Log preference + wire log controls before logging
-  log('trfm-unlock build ' + BUILD); // so a tester's log shows which deployed version they run
+  logDiagnosticHeader();             // informative on-load header (build / userAgent / platform / webBluetooth)
   initLangSwitch();
   initTheme();                       // before applyLang, so the first label is in the right language
   wireDocViewer();

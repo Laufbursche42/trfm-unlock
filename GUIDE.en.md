@@ -2,6 +2,8 @@
 
 > **Feasibility study.** This tool exists to show what a Teverun scooter's firmware makes possible, it is not a finished product. Error-free operation is not promised, there is no warranty of any kind. Whatever you build here and flash, you do at your own risk.
 
+> **Important for error reports:** switch on the **Diagnostic log** at the bottom of the page *before* you connect to the scooter. Only then is the full connection handshake captured - and those are exactly the lines we need in a [ticket](https://github.com/Laufbursche42/Laufbursche42/issues) to reproduce a problem.
+
 ## 1. What you need
 
 Everything happens in the browser over Web Bluetooth: connect, flash a firmware, unlock, lock, set wheel diameter and cruise. There is nothing to install. All it takes is:

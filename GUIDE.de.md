@@ -2,6 +2,8 @@
 
 > **Machbarkeitsstudie.** Dieses Werkzeug zeigt, was in der Firmware eines Teverun-Rollers technisch möglich ist, es ist kein fertiges Produkt. Fehlerfreier Betrieb wird nicht versprochen, es gibt keinerlei Gewährleistung. Was du hier baust und flashst, tust du auf eigenes Risiko.
 
+> **Wichtig für Fehler-Reports:** Schalte unten auf der Seite den **Diagnose-Log** ein, *bevor* du dich mit dem Scooter verbindest. Nur dann wird der komplette Verbindungsaufbau mitgeschnitten - und genau diese Zeilen brauchen wir in einem [Ticket](https://github.com/Laufbursche42/Laufbursche42/issues), um ein Problem nachzuvollziehen.
+
 ## 1. Was du brauchst
 
 Alles passiert im Browser über Web Bluetooth: verbinden, Firmware flashen, entsperren, sperren, Raddurchmesser und Tempomat einstellen. Es gibt nichts zu installieren. Gebraucht wird nur:
