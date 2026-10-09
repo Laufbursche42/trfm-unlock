@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v77';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v78';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1327,14 +1327,17 @@ function initLogPanel() {
     pub.addEventListener('change', () => {
       publicLog = pub.checked;
       try { localStorage.setItem(LS_PUBLIC_LOG, publicLog ? 'on' : 'off'); } catch (e) {}
+      log('public-log: ' + (publicLog ? 'on (anonymizing device name/id)' : 'off'));
       renderLog();
     });
   }
   const diag = $('diag-log');
   if (diag) {
     diag.checked = diagLog;
-    diag.addEventListener('change', () => { diagLog = diag.checked; log(diagLog ? 'diag log on' : 'diag log off', 'log-rx'); });
+    diag.addEventListener('change', () => { diagLog = diag.checked; log('diag-log: ' + (diagLog ? 'on' : 'off'), 'log-rx'); });
   }
+  const sa = $('showall');
+  if (sa) sa.addEventListener('change', () => { log('show-all: ' + (sa.checked ? 'on' : 'off')); });
   { const b = $('btn-copy-log'); if (b) b.addEventListener('click', copyLog); }
   { const b = $('btn-clear-log'); if (b) b.addEventListener('click', clearLog); }
   { const b = $('btn-save-log'); if (b) b.addEventListener('click', saveLog); }
