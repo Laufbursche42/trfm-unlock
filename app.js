@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BUILD = 'v78';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v79';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- BLE transport constants ---------------------------
 
@@ -1831,6 +1831,7 @@ const DOC_TITLES = {
   'PRIVACY.de.md': 'footPrivacy', 'PRIVACY.md': 'footPrivacy',
   'LICENSE.de.md': 'footLicense', 'LICENSE.md': 'footLicense',
   'TRADEMARKS.de.md': 'footTrademarks', 'TRADEMARKS.md': 'footTrademarks',
+  'DISCLAIMER.de.md': 'footDisclaimer', 'DISCLAIMER.md': 'footDisclaimer',
   'README.md': 'footReadme',
 };
 
@@ -2008,32 +2009,21 @@ function openDocFile(file, anchor, titleKey) {
     });
 }
 
-// The footer disclaimer shows the same points as the warning before a flash, but
-// without a confirm button: reading the terms must never start a flash.
-function openDisclaimer() {
-  const dlg = $('doc'), body = $('doc-body');
-  if (!dlg || !body) return;
-  $('doc-title').textContent = t('footDisclaimer');
-  var html = '<p>' + escHtml(t('discLede')) + '</p><ul>'
-           + tList('discPoints').map(p => '<li>' + p + '</li>').join('') + '</ul>';
-  body.innerHTML = html;   // scan-ok: lede escaped, list items are our own translation table, not user data
-  body.scrollTop = 0;
-  if (typeof dlg.showModal === 'function') dlg.showModal();
-}
+// The footer disclaimer opens the shared DISCLAIMER document, so the terms
+// read the same across every tool.
+function openDisclaimer() { openDoc('DISCLAIMER'); }
 
 function wireDocViewer() {
   // Delegated: the guide link inside a translated hint is rebuilt on every switch.
   document.addEventListener('click', e => {
     if (!e.target.closest) return;
-    // An intro/markdown link like <a href="#DISCLAIMER"> opens the matching doc. DISCLAIMER has no
-    // .md file here (it is built from discPoints), so it routes to openDisclaimer(), the rest to openDoc.
+    // An intro/markdown link like <a href="#DISCLAIMER"> opens the matching doc.
     const href = e.target.closest('a[href]');
     if (href) {
       const m = (href.getAttribute('href') || '').match(/^#(DISCLAIMER|LICENSE|PRIVACY|TRADEMARKS|GUIDE|README|CHANGELOG)$/i);
       if (m) {
         e.preventDefault();
-        const name = m[1].toUpperCase();
-        if (name === 'DISCLAIMER') openDisclaimer(); else openDoc(name);
+        openDoc(m[1].toUpperCase());
         return;
       }
     }
