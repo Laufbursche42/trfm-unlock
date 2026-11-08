@@ -8,13 +8,13 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png">
-<link rel="stylesheet" href="styles.css?v=84">
+<link rel="stylesheet" href="styles.css?v=85">
 <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "1f2a3915448b4b68b4380423f2be4b09"}'></script><!-- scan-ok: Cloudflare Web Analytics beacon (token starts 1f2a39 ends 4b09); cookieless aggregate page metrics, see PRIVACY -->
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Laufbursche <span data-t="brandSub"></span></h1>
+    <h1>Laufbursche <span data-t="brandSub">Teverun Fighter Mini Tool</span></h1>
     <div class="head-right">
       <span class="status" id="status" data-state="disconnected">disconnected</span>
       <div class="head-tools">
@@ -29,26 +29,26 @@
 
   <div class="sunset-overlay" id="sunset-overlay" role="dialog" aria-modal="true" aria-labelledby="sunset-ov-title">
     <div class="sunset-box">
-      <h2 class="sunset-title" id="sunset-ov-title" data-t="sunsetTitle"></h2>
-      <div class="sunset-text" data-t="sunsetBannerHtml"></div>
-      <button type="button" class="sunset-dismiss" id="sunset-overlay-x" data-t="sunsetDismiss"></button>
+      <h2 class="sunset-title" id="sunset-ov-title" data-t="sunsetTitle">Dieses Tool zieht um</h2>
+      <div class="sunset-text" data-t="sunsetBannerHtml"><b>Dieses Tool zieht um.</b> Dieses Repo wird <b>nicht mehr weiterentwickelt</b> - bitte wechsle zum neuen Tool: <a href="https://lb-tool-web.pages.dev/" target="_blank" rel="noopener">lb-tool-web.pages.dev</a>. Probleme beim Wechsel? Öffne ein <a href="https://github.com/Laufbursche42/Laufbursche42/issues/new" target="_blank" rel="noopener">Issue auf GitHub</a> oder schick eine <a href="https://www.escooter-stammtisch.de/index.php?user/6497-laufbursche/" target="_blank" rel="noopener">PN im eScooter-Stammtisch</a>.</div>
+      <button type="button" class="sunset-dismiss" id="sunset-overlay-x" data-t="sunsetDismiss">Verstanden, weiter zur Seite</button>
     </div>
   </div>
-  <div class="sunset-banner" role="alert" data-t="sunsetBannerHtml"></div>
-  <p class="hint infobox" data-t="androidAppHtml"></p>
+  <div class="sunset-banner" role="alert" data-t="sunsetBannerHtml"><b>Dieses Tool zieht um.</b> Dieses Repo wird <b>nicht mehr weiterentwickelt</b> - bitte wechsle zum neuen Tool: <a href="https://lb-tool-web.pages.dev/" target="_blank" rel="noopener">lb-tool-web.pages.dev</a>. Probleme beim Wechsel? Öffne ein <a href="https://github.com/Laufbursche42/Laufbursche42/issues/new" target="_blank" rel="noopener">Issue auf GitHub</a> oder schick eine <a href="https://www.escooter-stammtisch.de/index.php?user/6497-laufbursche/" target="_blank" rel="noopener">PN im eScooter-Stammtisch</a>.</div>
+  <p class="hint infobox" data-t="androidAppHtml">Android-Nutzer: Es gibt eine native Android-App, die dasselbe ohne Browser macht - <a href="https://github.com/Laufbursche42/tr-lb-edition" target="_blank" rel="noopener">tr-lb-edition</a>. Sie umgeht die Web-Bluetooth-Hürden (manche Handys, etwa Samsung mit Auto Blocker, blockieren die Browser-Verbindung). Diese Web-Seite ist der Weg für iOS.</p>
 
   <div class="card">
-    <h2 data-t="s1Title"></h2>
-    <p class="hint" data-t="sub"></p>
-    <p class="hint" data-t="startHintGuide"></p>
-    <p class="warn" data-t="expWarn"></p>
-    <p class="hint" data-t="ownDevice"></p>
+    <h2 data-t="s1Title">So fängst du an</h2>
+    <p class="hint" data-t="sub">Live sperren und entsperren über Web Bluetooth. Läuft in Bluefy (iOS) oder Chrome (Android/Desktop).</p>
+    <p class="hint" data-t="startHintGuide">Neu hier? In der <a href="GUIDE.de.md" data-doc="GUIDE" data-t="footGuide">Anleitung</a> steht jeder Schritt.</p>
+    <p class="warn" data-t="expWarn">Machbarkeitsstudie: Diese Seite zeigt, was das Bluetooth-Protokoll eines Teverun-E-Scooters technisch möglich macht. Sie ist kein fertiges Produkt. Es gibt keine Gewährleistung. Alles was du hier tust, tust du auf eigenes Risiko. <a href="#DISCLAIMER">Haftungsausschluss lesen</a>.</p>
+    <p class="hint" data-t="ownDevice">Nur am eigenen Fahrzeug auf privatem Gelände. Das Anheben der Höchstgeschwindigkeit hebt die Drossel auf, die ABE erlischt und der Betrieb auf öffentlichen Wegen ist dann nicht erlaubt.</p>
   </div>
 
   <div class="card">
-    <h2 data-t="s2Title"></h2>
+    <h2 data-t="s2Title">Verbindung</h2>
     <div class="log-opt">
-      <span data-t="showallLabel"></span>
+      <span data-t="showallLabel">Alle Geräte zeigen (wenn deins nicht auftaucht)</span>
       <input type="checkbox" id="showall">
     </div>
     <div class="btns">
@@ -58,81 +58,81 @@
   </div>
 
   <div class="card" id="live-card" hidden>
-    <h2 data-t="liveTitle"></h2>
+    <h2 data-t="liveTitle">Telemetrie</h2>
     <div class="grid">
-      <div class="tile"><b id="t-speed">-</b><small data-t="tileSpeed"></small></div>
-      <div class="tile"><b id="t-lock">-</b><small data-t="tileLock"></small></div>
-      <div class="tile"><b id="t-wheel">-</b><small data-t="tileWheel"></small></div>
-      <div class="tile"><b id="t-cruise">-</b><small data-t="tileCruise"></small></div>
-      <div class="tile"><b id="t-gear">-</b><small data-t="tileGear"></small></div>
+      <div class="tile"><b id="t-speed">-</b><small data-t="tileSpeed">Tempo</small></div>
+      <div class="tile"><b id="t-lock">-</b><small data-t="tileLock">Sperre</small></div>
+      <div class="tile"><b id="t-wheel">-</b><small data-t="tileWheel">Rad</small></div>
+      <div class="tile"><b id="t-cruise">-</b><small data-t="tileCruise">Tempomat</small></div>
+      <div class="tile"><b id="t-gear">-</b><small data-t="tileGear">Gang</small></div>
     </div>
-    <div class="row"><span class="fin"><span data-t="rowSwVer"></span> <span id="t-swver">-</span></span></div>
-    <div class="row"><span class="fin"><span data-t="rowFwVer"></span> <span id="t-fwver">-</span></span></div>
+    <div class="row"><span class="fin"><span data-t="rowSwVer">Firmware-Version:</span> <span id="t-swver">-</span></span></div>
+    <div class="row"><span class="fin"><span data-t="rowFwVer">Laufbursche-Version:</span> <span id="t-fwver">-</span></span></div>
     <hr class="sep">
-    <p class="hint" data-t="errHint"></p>
+    <p class="hint" data-t="errHint">Aktive Fehler und Warnungen, live vom Scooter gelesen. Keine Kommunikation zu Teverun-Servern.</p>
     <div class="btns">
-      <button class="primary span2" id="btn-err" data-t="btnErr" disabled></button>
+      <button class="primary span2" id="btn-err" data-t="btnErr" disabled>Fehlerberichte lesen</button>
     </div>
   </div>
 
   <div class="card" id="batt-card" hidden>
-    <h2 data-t="battTitle"></h2>
-    <p class="hint" data-t="battHint"></p>
+    <h2 data-t="battTitle">Akku-Telemetrie</h2>
+    <p class="hint" data-t="battHint">Zustand, Übersicht und Einzelzellspannungen des Akkupacks. Öffne die Akku-Infos, um alles zu sehen, was der Scooter meldet.</p>
     <div class="btns">
-      <button class="primary span2" id="btn-bat" data-t="btnBat" disabled></button>
+      <button class="primary span2" id="btn-bat" data-t="btnBat" disabled>Batterie-Infos öffnen</button>
     </div>
   </div>
 
   <div class="card" id="more-card" hidden>
-    <h2 data-t="s3Title"></h2>
+    <h2 data-t="s3Title">Einstellungen</h2>
 
-    <h3 class="set-group" data-t="setgrpSpeed"></h3>
+    <h3 class="set-group" data-t="setgrpSpeed">Tempo und Freischaltung</h3>
     <div class="btns">
       <button class="primary span2" id="btn-toggle" disabled></button>
     </div>
     <p class="hint reason" id="toggle-reason" hidden></p>
-    <p class="hint" data-t="controlsHint"></p>
+    <p class="hint" data-t="controlsHint">Der Button zeigt die Aktion zum aktuellen Zustand, live vom Scooter gelesen: <b>Entsperren</b>, wenn er gesperrt ist, <b>Sperren</b>, wenn er offen ist. Beides schaltet die Geschwindigkeitssperre direkt über BLE (Befehl 0x1B).</p>
 
-    <h3 class="set-group" data-t="setgrpGeneral"></h3>
+    <h3 class="set-group" data-t="setgrpGeneral">Allgemein</h3>
     <div class="set-row">
-      <label data-t="lblWheel"></label>
+      <label data-t="lblWheel">Raddurchmesser</label>
       <input id="wheel-in" type="number" step="0.1" min="1" disabled>
-      <button id="btn-set-wheel" data-t="btnSetWheel" disabled></button>
+      <button id="btn-set-wheel" data-t="btnSetWheel" disabled>Rad setzen</button>
     </div>
     <p class="hint reason" id="wheel-reason" hidden></p>
     <div class="set-row">
-      <label data-t="lblCruise"></label>
+      <label data-t="lblCruise">Tempomat</label>
       <select id="cruise-in" disabled>
-        <option value="0" data-t="cruiseOff"></option>
-        <option value="1" data-t="cruiseAuto"></option>
-        <option value="2" data-t="cruiseManual"></option>
+        <option value="0" data-t="cruiseOff">Aus</option>
+        <option value="1" data-t="cruiseAuto">Auto</option>
+        <option value="2" data-t="cruiseManual">Manuell</option>
       </select>
-      <button id="btn-set-cruise" data-t="btnSetCruise" disabled></button>
+      <button id="btn-set-cruise" data-t="btnSetCruise" disabled>Tempomat setzen</button>
     </div>
     <p class="hint reason" id="cruise-reason" hidden></p>
-    <p class="hint" data-t="settingsHint"></p>
+    <p class="hint" data-t="settingsHint">Beide Werte merkt sich der Browser auf diesem Gerät. Nach jedem Entsperren schreibt die Seite sie von selbst wieder in den Scooter, du musst sie also nur einmal eintragen.</p>
   </div>
 
   <div class="card" id="raw-card" hidden>
-    <h2 data-t="advTitle"></h2>
-    <p class="hint" data-t="advReadonlyNote"></p>
+    <h2 data-t="advTitle">Erweiterte Einstellungen</h2>
+    <p class="hint" data-t="advReadonlyNote">Alles, was der Controller an Telemetrie meldet, nur zum Ansehen. Schreibbar sind in diesem Tool bewusst nur Rad und Tempomat: für die übrigen Werte ist der Rückschreib-Pfad nicht abgesichert, also werden sie nicht editierbar gemacht.</p>
     <div id="adv-telemetry"></div>
-    <p class="hint" id="adv-empty" data-t="advEmpty"></p>
+    <p class="hint" id="adv-empty" data-t="advEmpty">Werte erscheinen, sobald der Scooter seine Konfiguration meldet.</p>
 
     <hr class="sep">
-    <h3 class="set-group" data-t="ledTitle"></h3>
-    <p class="hint" data-t="ledHint"></p>
+    <h3 class="set-group" data-t="ledTitle">LED-Beleuchtung</h3>
+    <p class="hint" data-t="ledHint">Alle RGB-Leuchten des Scooters. Einstellungen wirken sofort und gelten für alle Gruppen zugleich, einzeln ansprechen geht im Protokoll nicht. Der Scooter meldet seinen LED-Zustand nicht zurück.</p>
     <div class="btns">
-      <button class="primary span2" id="btn-led" data-t="btnLed" disabled></button>
+      <button class="primary span2" id="btn-led" data-t="btnLed" disabled>LED-Einstellungen</button>
     </div>
     <p class="hint reason" id="led-reason" hidden></p>
 
     <hr class="sep">
-    <h3 class="set-group" data-t="s4Title"></h3>
-    <p class="hint" data-t="flashHint"></p>
-    <p class="hint" data-t="iosHint"></p>
+    <h3 class="set-group" data-t="s4Title">Firmware flashen</h3>
+    <p class="hint" data-t="flashHint">Wähle eine Firmware-Datei, prüfe die Meldung dazu und flashe dann. Der Scooter muss den ganzen Lauf über an und in Reichweite bleiben, etwa sieben Minuten.</p>
+    <p class="hint" data-t="iosHint"><b>Auf dem iPhone:</b> lässt sich deine Datei in der Auswahl nicht antippen, benenn sie in <b>.txt</b> um. Am Inhalt ändert das nichts und die Seite liest ihn genauso, denn geprüft wird das Abbild selbst, nie der Dateiname.</p>
     <div class="row">
-      <button id="btn-pick" data-t="btnPick" disabled></button>
+      <button id="btn-pick" data-t="btnPick" disabled>Datei wählen</button>
       <button class="primary" id="btn-flash" disabled></button>
     </div>
     <p class="hint reason" id="flash-reason" hidden></p>
@@ -147,155 +147,155 @@
     </div>
 
     <hr class="sep">
-    <p class="danger" data-t="flashDanger"></p>
-    <p class="warn" data-t="flashHw"></p>
+    <p class="danger" data-t="flashDanger"><b>Brich einen laufenden Flash nicht ab.</b> Lass den Scooter an, lass diese Seite offen und bleib in Reichweite. Ein Flash, der auf halbem Weg stehen bleibt, hinterlässt einen Scooter, der nicht fährt, bis ein Flash vollständig durchläuft. Ein neuer Flash holt ihn zurück.</p>
+    <p class="warn" data-t="flashHw"><b>Hardware:</b> nur für die <b>IVCU-Hardware-Version 5.x</b>. Nicht für die "Ali-Box".</p>
   </div>
 
   <div class="card">
-    <h2 data-t="s6Title"></h2>
+    <h2 data-t="s6Title">Protokoll-Log</h2>
     <div class="log-opts">
       <div class="log-opt">
-        <span data-t="publicLogLabel"></span>
+        <span data-t="publicLogLabel">Öffentliches Log (Gerätename/ID anonymisieren)</span>
         <input type="checkbox" id="public-log" checked>
         <button type="button" class="help-btn" data-help="publiclog" aria-label="?">?</button>
       </div>
       <div class="log-opt">
-        <span data-t="diagLogLabel"></span>
+        <span data-t="diagLogLabel">Diagnose-Log</span>
         <input type="checkbox" id="diag-log">
         <button type="button" class="help-btn" data-help="diaglog" aria-label="?">?</button>
       </div>
     </div>
     <div class="btns">
-      <button type="button" id="btn-copy-log" data-t="btnCopyLog"></button>
-      <button type="button" id="btn-clear-log" data-t="btnClearLog"></button>
-      <button type="button" id="btn-save-log" class="span2" data-t="btnSaveLog"></button>
+      <button type="button" id="btn-copy-log" data-t="btnCopyLog">Kopieren</button>
+      <button type="button" id="btn-clear-log" data-t="btnClearLog">Leeren</button>
+      <button type="button" id="btn-save-log" class="span2" data-t="btnSaveLog">Speichern</button>
     </div>
     <pre id="log"></pre>
-    <p class="hint"><span class="log-tx" data-t="logTxLegend"></span>, <span class="log-rx" data-t="logRxLegend"></span></p>
+    <p class="hint"><span class="log-tx" data-t="logTxLegend">gesendet</span>, <span class="log-rx" data-t="logRxLegend">empfangen</span></p>
   </div>
 
   <footer class="foot">
     <span class="foot-links">
-      <a id="link-guide" href="GUIDE.de.md" data-doc="GUIDE" data-t="footGuide"></a>
-      <a href="https://github.com/Laufbursche42/trfm-unlock" target="_blank" rel="noopener" data-t="footSource"></a>
-      <a id="link-readme" href="README.md" data-doc="README" data-t="footReadme"></a>
-      <a id="link-disclaimer" href="#" data-t="footDisclaimer"></a>
-      <a id="link-license" href="LICENSE.de.md" data-doc="LICENSE" data-t="footLicense"></a>
-      <a id="link-privacy" href="PRIVACY.de.md" data-doc="PRIVACY" data-t="footPrivacy"></a>
-      <a id="link-trademarks" href="TRADEMARKS.de.md" data-doc="TRADEMARKS" data-t="footTrademarks"></a>
+      <a id="link-guide" href="GUIDE.de.md" data-doc="GUIDE" data-t="footGuide">Anleitung</a>
+      <a href="https://github.com/Laufbursche42/trfm-unlock" target="_blank" rel="noopener" data-t="footSource">Quellcode</a>
+      <a id="link-readme" href="README.md" data-doc="README" data-t="footReadme">Readme</a>
+      <a id="link-disclaimer" href="#" data-t="footDisclaimer">Haftungsausschluss</a>
+      <a id="link-license" href="LICENSE.de.md" data-doc="LICENSE" data-t="footLicense">Lizenz</a>
+      <a id="link-privacy" href="PRIVACY.de.md" data-doc="PRIVACY" data-t="footPrivacy">Datenschutz</a>
+      <a id="link-trademarks" href="TRADEMARKS.de.md" data-doc="TRADEMARKS" data-t="footTrademarks">Marken</a>
     </span>
-    <span class="foot-links"><span class="ver" id="build-ver"></span><a href="https://github.com/Laufbursche42/Laufbursche42/issues" target="_blank" rel="noopener" data-t="footIssue"></a></span>
+    <span class="foot-links"><span class="ver" id="build-ver"></span><a href="https://github.com/Laufbursche42/Laufbursche42/issues" target="_blank" rel="noopener" data-t="footIssue">Fehler melden</a></span>
     <a class="foot-copy" href="https://laufbursche42.github.io/Laufbursche42/" target="_blank" rel="noopener">Copyright (c) 2026 Laufbursche</a>
   </footer>
 </div>
 
 <dialog id="flash-warn">
   <div class="dlg-body">
-    <h3 data-t="dlgTitle"></h3>
+    <h3 data-t="dlgTitle">Lies das, bevor du flashst</h3>
     <p class="hint" id="dlg-file"></p>
     <ul id="dlg-list"></ul>
     <label class="consent-row" for="dlg-consent">
       <input type="checkbox" id="dlg-consent">
-      <span data-t="dlgConsent"></span>
+      <span data-t="dlgConsent">Ich habe den Haftungsausschluss gelesen und flashe auf eigene Gefahr.</span>
     </label>
-    <p class="hint"><a href="#" id="dlg-disclaimer" data-t="footDisclaimer"></a></p>
+    <p class="hint"><a href="#" id="dlg-disclaimer" data-t="footDisclaimer">Haftungsausschluss</a></p>
   </div>
   <div class="dlg-foot">
-    <button id="btn-warn-cancel" data-t="dlgNo"></button>
-    <button class="primary" id="btn-warn-ok" disabled data-t="dlgYes"></button>
+    <button id="btn-warn-cancel" data-t="dlgNo">Abbrechen</button>
+    <button class="primary" id="btn-warn-ok" disabled data-t="dlgYes">Verstanden, flashen</button>
   </div>
 </dialog>
 
 <dialog id="led" aria-labelledby="led-title">
   <div class="doc-head">
-    <h3 id="led-title" data-t="ledTitle"></h3>
+    <h3 id="led-title" data-t="ledTitle">LED-Beleuchtung</h3>
     <button type="button" id="led-close">&times;</button>
   </div>
   <div class="dlg-body">
-    <p class="hint" id="led-preview" data-t="ledPreview" hidden></p>
-    <p class="hint" id="led-live" data-t="ledLive" hidden></p>
+    <p class="hint" id="led-preview" data-t="ledPreview" hidden>Nicht verbunden: du kannst hier alles ansehen und einstellen, es wird nichts an den Scooter gesendet.</p>
+    <p class="hint" id="led-live" data-t="ledLive" hidden>Jede Änderung geht sofort an den Scooter, einen Speichern-Knopf gibt es deshalb nicht.</p>
 
     <div class="led-row-inline">
-      <label for="led-on" data-t="ledOn"></label>
+      <label for="led-on" data-t="ledOn">LED an</label>
       <span class="switch"><input type="checkbox" id="led-on"><span></span></span>
     </div>
 
     <div class="led-row">
-      <label for="led-bright" data-t="ledBright"></label>
+      <label for="led-bright" data-t="ledBright">Helligkeit</label>
       <div class="led-slider">
         <input type="range" id="led-bright" min="1" max="100" step="1" value="100">
         <span id="led-bright-val">100 %</span>
       </div>
     </div>
-    <p class="warn" data-t="ledBrightWarn"></p>
+    <p class="warn" data-t="ledBrightWarn">Die Helligkeit gilt nicht nur für die Streifen: die Steuerung dimmt Blinker und Bremslicht mit demselben Wert. Beim Ausschalten der LED setzt diese Seite die Helligkeit deshalb wieder auf 100 Prozent.</p>
 
     <div class="led-row">
-      <label for="led-color" data-t="ledColor"></label>
+      <label for="led-color" data-t="ledColor">Farbe</label>
       <input type="color" id="led-color" value="#ffffff">
     </div>
 
     <div class="led-row">
-      <label id="led-effect-label" data-t="ledEffect"></label>
+      <label id="led-effect-label" data-t="ledEffect">Effekt</label>
       <div class="picker" id="led-effect">
         <button type="button" class="picker-btn" id="led-effect-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="led-effect-label led-effect-btn"></button>
         <div class="picker-list" id="led-effect-list" role="listbox" hidden></div>
       </div>
     </div>
-    <p class="hint" data-t="ledEffectHint"></p>
+    <p class="hint" data-t="ledEffectHint">Steht der Effekt auf „Feste Farbe“, leuchten die LED in der oben gewählten Farbe. Jeder andere Effekt erzeugt seine Farben selbst. Wählst du dann oben eine Farbe, schaltet der Effekt zurück auf feste Farbe.</p>
   </div>
   <div class="dlg-foot">
-    <button class="primary" id="led-close-2" data-t="docClose"></button>
+    <button class="primary" id="led-close-2" data-t="docClose">Schließen</button>
   </div>
 </dialog>
 
 <dialog id="led-warn">
   <div class="dlg-body">
-    <h3 data-t="ledWarnTitle"></h3>
-    <p class="danger" data-t="ledWarnRoad"></p>
-    <p class="warn" data-t="ledWarnBright"></p>
+    <h3 data-t="ledWarnTitle">Bevor du die LED einschaltest</h3>
+    <p class="danger" data-t="ledWarnRoad">In Deutschland sind solche Zusatz-LED während der Fahrt im öffentlichen Verkehr nicht zulässig. Sei dir dessen bewusst und nutze sie entsprechend.</p>
+    <p class="warn" data-t="ledWarnBright">Die Helligkeit hängt mit Blinkern und Bremslicht zusammen: dimmst du die Streifen, werden Blinker und Bremslicht mit gedimmt.</p>
     <label class="consent-row" for="led-warn-skip">
       <input type="checkbox" id="led-warn-skip">
-      <span data-t="ledWarnSkip"></span>
+      <span data-t="ledWarnSkip">Diesen Hinweis 7 Tage lang nicht mehr anzeigen</span>
     </label>
   </div>
   <div class="dlg-foot">
-    <button id="btn-led-warn-cancel" data-t="dlgNo"></button>
-    <button class="primary" id="btn-led-warn-ok" data-t="ledWarnOk"></button>
+    <button id="btn-led-warn-cancel" data-t="dlgNo">Abbrechen</button>
+    <button class="primary" id="btn-led-warn-ok" data-t="ledWarnOk">Verstanden, einschalten</button>
   </div>
 </dialog>
 
 <dialog id="err" aria-labelledby="err-title">
   <div class="doc-head">
-    <h3 id="err-title" data-t="errTitle"></h3>
+    <h3 id="err-title" data-t="errTitle">Fehlerberichte</h3>
     <button type="button" id="err-close">&times;</button>
   </div>
   <div class="dlg-body">
-    <p class="hint" data-t="errHint"></p>
+    <p class="hint" data-t="errHint">Aktive Fehler und Warnungen, live vom Scooter gelesen. Keine Kommunikation zu Teverun-Servern.</p>
     <div id="err-list"></div>
   </div>
   <div class="dlg-foot">
-    <button class="primary" id="err-close-2" data-t="docClose"></button>
+    <button class="primary" id="err-close-2" data-t="docClose">Schließen</button>
   </div>
 </dialog>
 
 <dialog id="bat" aria-labelledby="bat-title">
   <div class="doc-head">
-    <h3 id="bat-title" data-t="batTitle"></h3>
+    <h3 id="bat-title" data-t="batTitle">Batterie-Infos</h3>
     <button type="button" id="bat-close">&times;</button>
   </div>
   <div class="dlg-body">
-    <p class="hint" data-t="batHint"></p>
-    <h4 class="dlg-sec" data-t="batHealthTitle"></h4>
+    <p class="hint" data-t="batHint">Zustand, Übersicht und Einzelzellspannungen des Akkupacks, live vom Scooter gelesen. Keine Kommunikation zu Teverun-Servern.</p>
+    <h4 class="dlg-sec" data-t="batHealthTitle">Batteriezustand</h4>
     <div id="bat-health"></div>
     <hr class="sep">
-    <h4 class="dlg-sec" data-t="batPackTitle"></h4>
+    <h4 class="dlg-sec" data-t="batPackTitle">Pack-Übersicht</h4>
     <div id="bat-pack"></div>
     <hr class="sep">
-    <h4 class="dlg-sec" data-t="batCellsTitle"></h4>
+    <h4 class="dlg-sec" data-t="batCellsTitle">Zellen</h4>
     <div class="grid cells" id="bat-cells"></div>
   </div>
   <div class="dlg-foot">
-    <button class="primary" id="bat-close-2" data-t="docClose"></button>
+    <button class="primary" id="bat-close-2" data-t="docClose">Schließen</button>
   </div>
 </dialog>
 
@@ -306,7 +306,7 @@
   </div>
   <div class="doc-body" id="help-body"></div>
   <div class="doc-foot">
-    <button type="button" id="help-close" data-t="docClose"></button>
+    <button type="button" id="help-close" data-t="docClose">Schließen</button>
   </div>
 </dialog>
 
@@ -317,14 +317,14 @@
   </div>
   <div class="doc-body" id="doc-body"></div>
   <div class="doc-foot">
-    <button type="button" id="doc-close" data-t="docClose"></button>
+    <button type="button" id="doc-close" data-t="docClose">Schließen</button>
   </div>
 </dialog>
 
-<script src="ota.js?v=84"></script>
-<script src="report-footer.js?v=84"></script>
-<script src="i18n.js?v=84"></script>
-<script src="app.js?v=84"></script>
-<script src="led.js?v=84"></script>
+<script src="ota.js?v=85"></script>
+<script src="report-footer.js?v=85"></script>
+<script src="i18n.js?v=85"></script>
+<script src="app.js?v=85"></script>
+<script src="led.js?v=85"></script>
 </body>
 </html>
